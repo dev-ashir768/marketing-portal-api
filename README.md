@@ -47,6 +47,19 @@ This is white-label: every client (`User`) runs their own portal/frontend on the
 - Change later: `PATCH /api/v1/auth/me` with `{ "portalUrl": "https://client-a.example.com" }`.
 - If a client hasn't set `portalUrl`, OAuth falls back to the env-level `FRONTEND_URL` (useful for your own testing before any real client portal exists).
 
+## Server-to-server integration (e.g. an external OMS)
+
+If the platform calling this API is itself a system with its own end users (an Order Management
+System, an agency tool, etc.) — those end users never need a login here. Instead:
+
+1. The integrating system registers **one** account here (`POST /auth/register`) and **one** Meta App (`POST /meta-apps`).
+2. It generates a long-lived API key: `POST /auth/api-key` (requires the JWT from step 1, once). The plaintext key (`mp_<prefix>_<secret>`) is returned exactly once — store it in the integrator's own backend config, not in source control.
+3. Every subsequent call uses `X-API-Key: <key>` instead of `Authorization: Bearer <jwt>` — `authMiddleware` (`src/middlewares/auth.middleware.ts`) accepts either. No token expiry to manage; rotate via `POST /auth/api-key` again (invalidates the old key) or `DELETE /auth/api-key` to revoke entirely.
+4. When connecting a Meta account *on behalf of one of the integrator's own customers*, pass `?externalCustomerId=<their-customer-id>` to `GET /meta-accounts/oauth/start` — it's threaded through the OAuth `state` and stored on the resulting `MetaAccount.externalCustomerId`. The integrator never has to expose any of this to us beyond an opaque string.
+5. `GET /meta-accounts?externalCustomerId=<id>` then returns only that customer's connected accounts — lets the integrator scope every read/write to the right end customer without us knowing anything about their data model.
+
+This means: one platform `User` per integrator (not per their end customer), one API key, `externalCustomerId` as the join key on their side.
+
 ## Connecting a user's Meta ad account (OAuth, per-user app)
 
 Users never type their Meta *password* into this platform, but each user (or agency) does need their own Meta Developer App, since Meta data is fetched under that app's identity:
@@ -95,10 +108,14 @@ Long-lived Meta tokens last ~60 days and users can revoke access at any time fro
 ## API
 
 - `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `PATCH /api/v1/auth/me` (update name/portalUrl)
+- `POST /api/v1/auth/api-key` (auth required) — generate/rotate this account's server-to-server API key
+- `DELETE /api/v1/auth/api-key` (auth required) — revoke the current API key
 - `POST /api/v1/meta-apps` — register a user's own Meta App (appId + appSecret)
 - `GET /api/v1/meta-apps` — list the user's registered Meta Apps
-- `GET /api/v1/meta-accounts/oauth/start?metaAppId=<id>` (auth required) — begins OAuth under that app, redirects to Meta
+- `GET /api/v1/meta-accounts/oauth/start?metaAppId=<id>&externalCustomerId=<optional>` (auth required) — begins OAuth under that app, redirects to Meta
 - `GET /api/v1/meta-accounts/oauth/callback` (public, called by Meta) — completes OAuth
 - `POST /api/v1/meta-accounts/webhook/deauthorize/:metaAppId` (public, called by Meta) — handles access revocation
-- `POST /api/v1/meta-accounts`, `GET /api/v1/meta-accounts` — manual token connect (e.g. for testing/admin use)
+- `POST /api/v1/meta-accounts`, `GET /api/v1/meta-accounts?externalCustomerId=<optional>` — manual token connect / list (optionally scoped to one integrator customer)
 - `POST /api/v1/campaigns`, `GET /api/v1/campaigns`, `GET/PATCH/DELETE /api/v1/campaigns/:id`
+
+All authenticated routes accept either `Authorization: Bearer <jwt>` (human login) or `X-API-Key: <key>` (server-to-server) — see "Server-to-server integration" above.

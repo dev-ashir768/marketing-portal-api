@@ -42,6 +42,14 @@ model User {
   // instead of a single platform-wide frontend, since each client is white-labeled
   // with their own portal. Falls back to env FRONTEND_URL if unset.
   portalUrl     String?
+
+  // For server-to-server integration (e.g. an external OMS calling this API on
+  // behalf of its own customers) — a long-lived API key, used instead of a JWT
+  // login. apiKeyPrefix is stored in plaintext (indexed, used to find the
+  // candidate row); apiKeyHash is bcrypt-hashed, never the raw key.
+  apiKeyPrefix  String?  @unique
+  apiKeyHash    String?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -87,6 +95,12 @@ model MetaAccount {
   facebookUserId  String?  // the Meta/Facebook user id that authorized this connection — needed to match deauthorize webhook callbacks
   businessName    String?
 
+  // Opaque reference to *this platform user's own* customer (e.g. an OMS's
+  // internal customer/tenant id). Lets a server-to-server integrator filter
+  // "give me accounts belonging to my customer X" without us knowing anything
+  // about their customer model. Never validated/interpreted by us.
+  externalCustomerId String?
+
   accessTokenEncrypted String @db.Text
   accessTokenIv        String
   accessTokenAuthTag   String
@@ -108,6 +122,7 @@ model MetaAccount {
   @@index([userId])
   @@index([metaAppId])
   @@index([facebookUserId])
+  @@index([externalCustomerId])
   @@map("meta_accounts")
 }
 

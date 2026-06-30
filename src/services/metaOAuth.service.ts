@@ -23,24 +23,31 @@ interface MetaAdAccountSummary {
 interface OAuthStatePayload {
   sub: string; // platform userId
   metaAppId: string; // which of the user's registered MetaApp rows this flow uses
+  // Opaque external/customer reference passed through by a server-to-server
+  // integrator (e.g. an OMS), so the resulting MetaAccount rows can be tied
+  // back to *their* customer. Never interpreted by us.
+  externalCustomerId?: string;
   purpose: "meta_oauth";
 }
 
-// Signs the requesting user's id + chosen MetaApp into the OAuth `state` param so the
-// callback (which Meta calls directly, with no Authorization header) can identify both.
+// Signs the requesting user's id + chosen MetaApp (+ optional external customer
+// reference) into the OAuth `state` param so the callback (which Meta calls
+// directly, with no Authorization header) can identify all of it.
 // Short-lived (10 min) to limit the window if a state value leaks.
-export function createOAuthState(userId: string, metaAppId: string): string {
-  const payload: OAuthStatePayload = { sub: userId, metaAppId, purpose: "meta_oauth" };
+export function createOAuthState(userId: string, metaAppId: string, externalCustomerId?: string): string {
+  const payload: OAuthStatePayload = { sub: userId, metaAppId, externalCustomerId, purpose: "meta_oauth" };
   return jwt.sign(payload, env.JWT_SECRET, { expiresIn: "10m" });
 }
 
-export function verifyOAuthState(state: string): { userId: string; metaAppId: string } {
+export function verifyOAuthState(
+  state: string
+): { userId: string; metaAppId: string; externalCustomerId?: string } {
   try {
     const payload = jwt.verify(state, env.JWT_SECRET) as OAuthStatePayload;
     if (payload.purpose !== "meta_oauth") {
       throw new Error("wrong purpose");
     }
-    return { userId: payload.sub, metaAppId: payload.metaAppId };
+    return { userId: payload.sub, metaAppId: payload.metaAppId, externalCustomerId: payload.externalCustomerId };
   } catch {
     throw new AppError("Invalid or expired OAuth state", 400);
   }

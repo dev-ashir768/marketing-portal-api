@@ -18,6 +18,7 @@ export async function connectMetaAccount(userId: string, input: ConnectMetaAccou
     data: {
       userId,
       metaAdAccountId: input.metaAdAccountId,
+      externalCustomerId: input.externalCustomerId,
       businessName: input.businessName,
       accessTokenEncrypted: accessTokenEnc.ciphertext,
       accessTokenIv: accessTokenEnc.iv,
@@ -47,7 +48,8 @@ export async function persistMetaAccountsFromOAuth(
   facebookUserId: string,
   adAccounts: OAuthAdAccountSummary[],
   accessToken: string,
-  expiresInSeconds?: number
+  expiresInSeconds?: number,
+  externalCustomerId?: string
 ) {
   const accessTokenEnc = encryptToken(accessToken);
   const tokenExpiresAt = expiresInSeconds
@@ -70,6 +72,7 @@ export async function persistMetaAccountsFromOAuth(
         userId,
         metaAppId,
         facebookUserId,
+        externalCustomerId,
         metaAdAccountId: adAccount.id,
         businessName: adAccount.name,
         accessTokenEncrypted: accessTokenEnc.ciphertext,
@@ -80,6 +83,7 @@ export async function persistMetaAccountsFromOAuth(
       update: {
         metaAppId,
         facebookUserId,
+        ...(externalCustomerId ? { externalCustomerId } : {}),
         businessName: adAccount.name,
         accessTokenEncrypted: accessTokenEnc.ciphertext,
         accessTokenIv: accessTokenEnc.iv,
@@ -108,8 +112,10 @@ export async function deactivateMetaAccount(metaAccountId: string) {
   await prisma.metaAccount.update({ where: { id: metaAccountId }, data: { isActive: false } });
 }
 
-export async function listMetaAccounts(userId: string) {
-  const accounts = await prisma.metaAccount.findMany({ where: { userId } });
+export async function listMetaAccounts(userId: string, externalCustomerId?: string) {
+  const accounts = await prisma.metaAccount.findMany({
+    where: { userId, ...(externalCustomerId ? { externalCustomerId } : {}) },
+  });
   return accounts.map(sanitizeMetaAccount);
 }
 

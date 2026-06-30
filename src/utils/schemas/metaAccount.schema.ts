@@ -6,6 +6,8 @@ export const connectMetaAccountSchema = z.object({
   accessToken: z.string().min(1),
   refreshToken: z.string().min(1).optional(),
   tokenExpiresAt: z.coerce.date().optional(),
+  // Reference to a server-to-server integrator's own customer/tenant — opaque to us.
+  externalCustomerId: z.string().min(1).max(255).optional(),
 });
 
 export type ConnectMetaAccountInput = z.infer<typeof connectMetaAccountSchema>;

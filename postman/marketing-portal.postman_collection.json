@@ -8,9 +8,11 @@
     { "key": "baseUrl", "value": "http://localhost:4000/api/v1" },
     { "key": "serverUrl", "value": "http://localhost:4000" },
     { "key": "token", "value": "" },
+    { "key": "apiKey", "value": "" },
     { "key": "metaAppId", "value": "" },
     { "key": "metaAccountId", "value": "" },
-    { "key": "campaignId", "value": "" }
+    { "key": "campaignId", "value": "" },
+    { "key": "externalCustomerId", "value": "customer-123" }
   ],
   "item": [
     {
@@ -54,6 +56,50 @@
               "raw": "{\n  \"portalUrl\": \"https://client-a.example.com\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Generate API Key (server-to-server)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/api-key", "host": ["{{baseUrl}}"], "path": ["auth", "api-key"] },
+            "description": "Returns the plaintext key exactly once. Use it as X-API-Key on subsequent requests instead of the JWT — see other requests' 'Use API Key instead' variants."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.collectionVariables.set('apiKey', data.apiKey);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revoke API Key",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/api-key", "host": ["{{baseUrl}}"], "path": ["auth", "api-key"] }
+          }
+        },
+        {
+          "name": "List Meta Accounts (via API Key, scoped to one customer)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/meta-accounts?externalCustomerId={{externalCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["meta-accounts"],
+              "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+            },
+            "description": "Demonstrates the server-to-server pattern: X-API-Key instead of a JWT, scoped to one of the integrator's own customers via externalCustomerId."
           }
         },
         {
@@ -133,10 +179,13 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "{{baseUrl}}/meta-accounts/oauth/start?metaAppId={{metaAppId}}",
+              "raw": "{{baseUrl}}/meta-accounts/oauth/start?metaAppId={{metaAppId}}&externalCustomerId={{externalCustomerId}}",
               "host": ["{{baseUrl}}"],
               "path": ["meta-accounts", "oauth", "start"],
-              "query": [{ "key": "metaAppId", "value": "{{metaAppId}}" }]
+              "query": [
+                { "key": "metaAppId", "value": "{{metaAppId}}" },
+                { "key": "externalCustomerId", "value": "{{externalCustomerId}}", "description": "Optional — only set this if you're a server-to-server integrator connecting on behalf of your own customer." }
+              ]
             },
             "description": "Not a typical Postman call — Postman won't follow Meta's login redirect through a real browser session. Register a Meta App first (see 'Meta Apps' folder), then paste this URL into a browser (with the JWT applied, e.g. via a query workaround or just test via the frontend) to actually complete the OAuth dialog under that app's identity. The callback (oauth/callback) is hit directly by Meta and isn't meant to be called manually."
           }
