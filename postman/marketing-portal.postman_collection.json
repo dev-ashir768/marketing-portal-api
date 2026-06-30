@@ -1,0 +1,301 @@
+{
+  "info": {
+    "name": "Marketing Portal - Meta Ads SaaS API",
+    "description": "Endpoints for auth, Meta ad account connection, and campaign CRUD.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000/api/v1" },
+    { "key": "serverUrl", "value": "http://localhost:4000" },
+    { "key": "token", "value": "" },
+    { "key": "metaAppId", "value": "" },
+    { "key": "metaAccountId", "value": "" },
+    { "key": "campaignId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@example.com\",\n  \"password\": \"SuperSecret123\",\n  \"name\": \"Jane Owner\",\n  \"portalUrl\": \"https://client-a.example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.collectionVariables.set('token', data.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update My Portal URL",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"portalUrl\": \"https://client-a.example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@example.com\",\n  \"password\": \"SuperSecret123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.collectionVariables.set('token', data.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Meta Apps",
+      "item": [
+        {
+          "name": "Register Meta App (user's own App ID/Secret)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appId\": \"1234567890123456\",\n  \"appSecret\": \"your-meta-app-secret\",\n  \"label\": \"Acme Agency App\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/meta-apps", "host": ["{{baseUrl}}"], "path": ["meta-apps"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.collectionVariables.set('metaAppId', data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Meta Apps",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/meta-apps", "host": ["{{baseUrl}}"], "path": ["meta-apps"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Meta Accounts",
+      "item": [
+        {
+          "name": "Start OAuth Connect (open in browser)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/meta-accounts/oauth/start?metaAppId={{metaAppId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["meta-accounts", "oauth", "start"],
+              "query": [{ "key": "metaAppId", "value": "{{metaAppId}}" }]
+            },
+            "description": "Not a typical Postman call — Postman won't follow Meta's login redirect through a real browser session. Register a Meta App first (see 'Meta Apps' folder), then paste this URL into a browser (with the JWT applied, e.g. via a query workaround or just test via the frontend) to actually complete the OAuth dialog under that app's identity. The callback (oauth/callback) is hit directly by Meta and isn't meant to be called manually."
+          }
+        },
+        {
+          "name": "Connect Meta Account (manual token, testing only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metaAdAccountId\": \"act_123456789\",\n  \"businessName\": \"Acme Inc\",\n  \"accessToken\": \"EAAB...longLivedToken\",\n  \"refreshToken\": \"\",\n  \"tokenExpiresAt\": \"2026-12-31T00:00:00.000Z\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/meta-accounts", "host": ["{{baseUrl}}"], "path": ["meta-accounts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.collectionVariables.set('metaAccountId', data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Meta Accounts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/meta-accounts", "host": ["{{baseUrl}}"], "path": ["meta-accounts"] }
+          }
+        },
+        {
+          "name": "Deauthorize Webhook (simulate, not really callable without a real signed_request)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [{ "key": "signed_request", "value": "<base64url-sig>.<base64url-payload>" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/meta-accounts/webhook/deauthorize/{{metaAppId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["meta-accounts", "webhook", "deauthorize", "{{metaAppId}}"]
+            },
+            "description": "This is what Meta itself calls server-to-server when a user revokes access — not something you'd normally trigger manually. signed_request must be HMAC-SHA256 signed with that Meta App's real secret, so a hand-crafted Postman call will fail signature verification (400) unless you compute it with the real appSecret."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaigns",
+      "item": [
+        {
+          "name": "Create Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metaAccountId\": \"{{metaAccountId}}\",\n  \"name\": \"Summer Sale Campaign\",\n  \"objective\": \"SALES\",\n  \"status\": \"DRAFT\",\n  \"dailyBudgetCents\": 5000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/campaigns", "host": ["{{baseUrl}}"], "path": ["campaigns"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.collectionVariables.set('campaignId', data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/campaigns?metaAccountId={{metaAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["campaigns"],
+              "query": [{ "key": "metaAccountId", "value": "{{metaAccountId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["campaigns", "{{campaignId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["campaigns", "{{campaignId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Campaign",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["campaigns", "{{campaignId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{serverUrl}}/health", "host": ["{{serverUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    }
+  ]
+}
