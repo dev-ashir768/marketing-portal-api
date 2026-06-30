@@ -1,0 +1,23 @@
+# Copy to /etc/nginx/sites-available/marketing-portal, then:
+#   sudo ln -s /etc/nginx/sites-available/marketing-portal /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+# Replace api.yourdomain.com with your real domain before copying.
+# After this is live, run certbot (see DEPLOYMENT.md) — it will rewrite this
+# file to add the SSL server block automatically.
+
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:4000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
