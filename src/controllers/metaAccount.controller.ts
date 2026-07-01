@@ -56,7 +56,8 @@ export const startOAuth = asyncHandler(async (req: Request, res: Response) => {
 
   const metaApp = await getOwnedMetaApp(req.user.id, metaAppId);
   const state = createOAuthState(req.user.id, metaApp.id, externalCustomerId);
-  res.redirect(buildMetaAuthorizationUrl(metaApp.appId, state));
+  const url = buildMetaAuthorizationUrl(metaApp.appId, state);
+  res.status(200).json({ success: true, data: { url } });
 });
 
 // Each client is white-labeled with their own portal, so redirects must land
