@@ -30,90 +30,84 @@ enum CampaignObjective {
   OUTCOME_SALES
 }
 
-// Tenant-owning user. Each user belongs to exactly one tenant in this MVP;
-// swap to a separate Tenant model + UserTenant join table if multi-membership is needed later.
+enum AdSetStatus {
+  ACTIVE
+  PAUSED
+  DELETED
+  ARCHIVED
+}
+
+enum AdStatus {
+  ACTIVE
+  PAUSED
+  DELETED
+  ARCHIVED
+}
+
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String
-  name          String
-  role          Role     @default(OWNER)
-  // This client's own portal/frontend base URL. OAuth callbacks redirect here
-  // instead of a single platform-wide frontend, since each client is white-labeled
-  // with their own portal. Falls back to env FRONTEND_URL if unset.
-  portalUrl     String?
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String
+  name         String
+  role         Role    @default(OWNER)
+  portalUrl    String?
+  apiKeyPrefix String? @unique
+  apiKeyHash   String?
 
-  // For server-to-server integration (e.g. an external OMS calling this API on
-  // behalf of its own customers) — a long-lived API key, used instead of a JWT
-  // login. apiKeyPrefix is stored in plaintext (indexed, used to find the
-  // candidate row); apiKeyHash is bcrypt-hashed, never the raw key.
-  apiKeyPrefix  String?  @unique
-  apiKeyHash    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  metaAccounts  MetaAccount[]
-  metaApps      MetaApp[]
+  metaAccounts MetaAccount[]
+  metaApps     MetaApp[]
 
   @@map("users")
 }
 
-// A user-owned Meta Developer App ("Bring Your Own App"). Each user/agency registers
-// their own App ID + App Secret here; OAuth connections are then performed under that
-// app's identity rather than a single platform-wide app. appSecret is AES-256-GCM
-// encrypted at rest — never stored or returned in plaintext.
 model MetaApp {
-  id                 String   @id @default(uuid())
-  userId             String
-  label              String? // optional friendly name, e.g. "Acme Agency App"
-  appId              String   @unique // Meta's numeric App ID
+  id    String  @id @default(uuid())
+  userId String
+  label  String?
+  appId  String  @unique
 
-  appSecretEncrypted String @db.Text
+  appSecretEncrypted String  @db.Text
   appSecretIv        String
   appSecretAuthTag   String
 
-  isActive           Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  metaAccounts       MetaAccount[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metaAccounts MetaAccount[]
 
   @@index([userId])
   @@map("meta_apps")
 }
 
-// Stores the connection to a Meta Business/Ad account.
-// accessToken/refreshToken are persisted as AES-256-GCM ciphertext (see src/utils/crypto.ts),
-// never in plaintext — iv/authTag are required to decrypt.
 model MetaAccount {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   userId          String
-  metaAppId       String? // which user-owned Meta App this token/account was obtained through
-  metaAdAccountId String   @unique // Meta's act_<id> identifier
-  facebookUserId  String?  // the Meta/Facebook user id that authorized this connection — needed to match deauthorize webhook callbacks
+  metaAppId       String?
+  metaAdAccountId String  @unique
+  facebookUserId  String?
   businessName    String?
-
-  // Opaque reference to *this platform user's own* customer (e.g. an OMS's
-  // internal customer/tenant id). Lets a server-to-server integrator filter
-  // "give me accounts belonging to my customer X" without us knowing anything
-  // about their customer model. Never validated/interpreted by us.
   externalCustomerId String?
 
-  accessTokenEncrypted String @db.Text
+  accessTokenEncrypted String   @db.Text
   accessTokenIv        String
   accessTokenAuthTag   String
 
-  tokenExpiresAt  DateTime?
-  isActive        Boolean  @default(true)
+  tokenExpiresAt DateTime?
+  isActive       Boolean   @default(true)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  metaApp         MetaApp?      @relation(fields: [metaAppId], references: [id], onDelete: SetNull)
-  campaigns       AdCampaign[]
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metaApp   MetaApp?    @relation(fields: [metaAppId], references: [id], onDelete: SetNull)
+  campaigns AdCampaign[]
+  adSets    AdSet[]
+  ads       Ad[]
 
   @@index([userId])
   @@index([metaAppId])
@@ -123,22 +117,66 @@ model MetaAccount {
 }
 
 model AdCampaign {
-  id              String            @id @default(uuid())
-  metaAccountId   String
-  metaCampaignId  String?           @unique // populated once synced/created on Meta
-  name            String
-  objective       CampaignObjective
-  status          CampaignStatus    @default(DRAFT)
-  dailyBudgetCents Int?
+  id             String            @id @default(uuid())
+  metaAccountId  String
+  metaCampaignId String?           @unique
+  name           String
+  objective      CampaignObjective
+  status         CampaignStatus    @default(DRAFT)
+  dailyBudgetCents    Int?
   lifetimeBudgetCents Int?
-  startTime       DateTime?
-  endTime         DateTime?
+  startTime      DateTime?
+  endTime        DateTime?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  metaAccount     MetaAccount @relation(fields: [metaAccountId], references: [id], onDelete: Cascade)
+  metaAccount MetaAccount @relation(fields: [metaAccountId], references: [id], onDelete: Cascade)
+  adSets      AdSet[]
 
   @@index([metaAccountId])
   @@map("ad_campaigns")
+}
+
+model AdSet {
+  id            String      @id @default(uuid())
+  metaAccountId String
+  campaignId    String
+  metaAdSetId   String?     @unique
+  name          String
+  status        AdSetStatus @default(PAUSED)
+  dailyBudgetCents    Int?
+  lifetimeBudgetCents Int?
+  startTime     DateTime?
+  endTime       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  metaAccount MetaAccount @relation(fields: [metaAccountId], references: [id], onDelete: Cascade)
+  campaign    AdCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ads         Ad[]
+
+  @@index([metaAccountId])
+  @@index([campaignId])
+  @@map("ad_sets")
+}
+
+model Ad {
+  id          String   @id @default(uuid())
+  metaAccountId String
+  adSetId     String
+  metaAdId    String?  @unique
+  name        String
+  status      AdStatus @default(PAUSED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  metaAccount MetaAccount @relation(fields: [metaAccountId], references: [id], onDelete: Cascade)
+  adSet       AdSet       @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+
+  @@index([metaAccountId])
+  @@index([adSetId])
+  @@map("ads")
 }

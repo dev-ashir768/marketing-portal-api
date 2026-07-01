@@ -64,28 +64,46 @@ export async function createCampaign(userId: string, input: CreateCampaignInput)
 
 export async function listCampaigns(
   userId: string,
-  filters: { metaAccountId?: string; metaAdAccountId?: string; externalCustomerId?: string }
+  filters: {
+    metaAccountId?: string;
+    metaAdAccountId?: string;
+    externalCustomerId?: string;
+    page?: number;
+    limit?: number;
+  }
 ) {
-  return prisma.adCampaign.findMany({
-    where: {
-      metaAccount: {
-        userId,
-        ...(filters.externalCustomerId ? { externalCustomerId: filters.externalCustomerId } : {}),
-        ...(filters.metaAdAccountId ? { metaAdAccountId: filters.metaAdAccountId } : {}),
-      },
-      ...(filters.metaAccountId ? { metaAccountId: filters.metaAccountId } : {}),
+  const page = Math.max(1, filters.page ?? 1);
+  const limit = Math.min(100, Math.max(1, filters.limit ?? 20));
+  const skip = (page - 1) * limit;
+
+  const where = {
+    metaAccount: {
+      userId,
+      ...(filters.externalCustomerId ? { externalCustomerId: filters.externalCustomerId } : {}),
+      ...(filters.metaAdAccountId ? { metaAdAccountId: filters.metaAdAccountId } : {}),
     },
-    include: {
-      metaAccount: {
-        select: {
-          metaAdAccountId: true,
-          businessName: true,
-          externalCustomerId: true,
+    ...(filters.metaAccountId ? { metaAccountId: filters.metaAccountId } : {}),
+  };
+
+  const [total, data] = await Promise.all([
+    prisma.adCampaign.count({ where }),
+    prisma.adCampaign.findMany({
+      where,
+      include: {
+        metaAccount: {
+          select: { metaAdAccountId: true, businessName: true, externalCustomerId: true },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+  ]);
+
+  return {
+    data,
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
 }
 
 export async function getCampaign(userId: string, campaignId: string, externalCustomerId?: string) {

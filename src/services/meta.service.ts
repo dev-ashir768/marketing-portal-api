@@ -1,4 +1,10 @@
-import { FacebookAdsApi, AdAccount, Campaign } from "facebook-nodejs-business-sdk";
+import { FacebookAdsApi, AdAccount } from "facebook-nodejs-business-sdk";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Campaign, AdSet, Ad } = require("facebook-nodejs-business-sdk") as {
+  Campaign: new (id: string) => any;
+  AdSet: new (id: string) => any;
+  Ad: new (id: string) => any;
+};
 import { decryptToken } from "../utils/crypto";
 import { AppError } from "../utils/AppError";
 import { MetaAccount } from "@prisma/client";
@@ -72,7 +78,7 @@ export class MetaAccountClient {
       }
 
       const campaign = await this.adAccount.createCampaign(fields, createParams);
-      return campaign as InstanceType<typeof Campaign>;
+      return campaign as { id: string; name: string };
     } catch (err) {
       return this.handleMetaError(err, "Failed to create campaign on Meta");
     }
@@ -95,6 +101,77 @@ export class MetaAccountClient {
       return campaigns as unknown as Array<{ id: string; name: string; status: string; objective: string; daily_budget?: string; lifetime_budget?: string; start_time?: string; stop_time?: string }>;
     } catch (err) {
       return this.handleMetaError(err, "Failed to sync campaigns from Meta");
+    }
+  }
+
+  async syncAdSets(metaCampaignId: string): Promise<Array<{
+    id: string; name: string; status: string;
+    daily_budget?: string; lifetime_budget?: string;
+    start_time?: string; end_time?: string;
+  }>> {
+    try {
+      const campaign: any = new Campaign(metaCampaignId);
+      const adSets = await campaign.getAdSets([
+        "id", "name", "status",
+        "daily_budget", "lifetime_budget", "start_time", "end_time",
+      ]);
+      return adSets as Array<{ id: string; name: string; status: string; daily_budget?: string; lifetime_budget?: string; start_time?: string; end_time?: string }>;
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to sync ad sets from Meta");
+    }
+  }
+
+  async syncAds(metaAdSetId: string): Promise<Array<{ id: string; name: string; status: string }>> {
+    try {
+      const adSet = new AdSet(metaAdSetId);
+      const ads = await adSet.getAds(["id", "name", "status"]);
+      return ads as Array<{ id: string; name: string; status: string }>;
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to sync ads from Meta");
+    }
+  }
+
+  async getInsights(params: {
+    level: "account" | "campaign" | "adset" | "ad";
+    objectId?: string;
+    datePreset?: string;
+    since?: string;
+    until?: string;
+  }): Promise<Array<Record<string, string>>> {
+    try {
+      const fields = [
+        "impressions", "clicks", "spend",
+        "ctr", "cpm", "cpp", "reach",
+        "actions", "cost_per_action_type",
+        "date_start", "date_stop",
+      ];
+      const insightParams: Record<string, unknown> = {
+        level: params.level,
+        date_preset: params.datePreset ?? "last_30d",
+      };
+      if (params.since && params.until) {
+        insightParams.time_range = { since: params.since, until: params.until };
+        delete insightParams.date_preset;
+      }
+
+      let insights: unknown;
+      if (params.objectId && params.level === "campaign") {
+        const obj: any = new Campaign(params.objectId);
+        insights = await obj.getInsights(fields, insightParams);
+      } else if (params.objectId && params.level === "adset") {
+        const obj = new AdSet(params.objectId);
+        insights = await obj.getInsights(fields, insightParams);
+      } else if (params.objectId && params.level === "ad") {
+        const obj = new Ad(params.objectId);
+        insights = await obj.getInsights(fields, insightParams);
+      } else {
+        const acc: any = this.adAccount;
+        insights = await acc.getInsights(fields, insightParams);
+      }
+
+      return insights as Array<Record<string, string>>;
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to fetch insights from Meta");
     }
   }
 }

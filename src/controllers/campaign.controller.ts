@@ -27,12 +27,14 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 
 export const list = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
-  const campaigns = await listCampaigns(user.id, {
+  const result = await listCampaigns(user.id, {
     metaAccountId: qs(req, "metaAccountId"),
     metaAdAccountId: qs(req, "metaAdAccountId"),
     externalCustomerId: qs(req, "externalCustomerId"),
+    page: req.query.page ? parseInt(req.query.page as string) : undefined,
+    limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
   });
-  res.status(200).json({ success: true, data: campaigns });
+  res.status(200).json({ success: true, ...result });
 });
 
 export const getOne = asyncHandler(async (req: Request, res: Response) => {

@@ -13,6 +13,8 @@
     { "key": "metaAccountId", "value": "", "description": "Internal UUID — List Meta Accounts chalane par auto-set hota hai" },
     { "key": "metaAdAccountId", "value": "", "description": "Meta ka act_xxx ID — List Meta Accounts chalane par auto-set hota hai" },
     { "key": "campaignId", "value": "" },
+    { "key": "adSetId", "value": "" },
+    { "key": "adId", "value": "" },
     { "key": "externalCustomerId", "value": "customer-123" }
   ],
   "item": [
@@ -393,9 +395,264 @@
                 "method": "DELETE",
                 "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
                 "url": {
-                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}",
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}?externalCustomerId={{externalCustomerId}}",
                   "host": ["{{baseUrl}}"],
-                  "path": ["campaigns", "{{campaignId}}"]
+                  "path": ["campaigns", "{{campaignId}}"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ad Sets",
+          "item": [
+            {
+              "name": "Sync Ad Sets (campaign ke andar)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/sync?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "sync"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                },
+                "description": "Campaign ke andar saare Ad Sets Meta se sync karo."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["console.log('Ad Sets synced:', pm.response.json());"] } }]
+            },
+            {
+              "name": "List Ad Sets",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets?externalCustomerId={{externalCustomerId}}&page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets"],
+                  "query": [
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}" },
+                    { "key": "page", "value": "1" },
+                    { "key": "limit", "value": "20" }
+                  ]
+                }
+              },
+              "event": [{
+                "listen": "test",
+                "script": { "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.length > 0) {",
+                  "  pm.collectionVariables.set('adSetId', res.data[0].id);",
+                  "  console.log('adSetId set:', res.data[0].id);",
+                  "}"
+                ]}
+              }]
+            },
+            {
+              "name": "Get Ad Set",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                }
+              }
+            },
+            {
+              "name": "Update Ad Set",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "X-API-Key", "value": "{{apiKey}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"PAUSED\"\n}" },
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                }
+              }
+            },
+            {
+              "name": "Delete Ad Set",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ads",
+          "item": [
+            {
+              "name": "Sync Ads (ad set ke andar)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}/ads/sync?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}", "ads", "sync"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                },
+                "description": "Ad Set ke andar saare Ads Meta se sync karo."
+              }
+            },
+            {
+              "name": "List Ads",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}/ads?externalCustomerId={{externalCustomerId}}&page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}", "ads"],
+                  "query": [
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}" },
+                    { "key": "page", "value": "1" },
+                    { "key": "limit", "value": "20" }
+                  ]
+                }
+              },
+              "event": [{
+                "listen": "test",
+                "script": { "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.length > 0) {",
+                  "  pm.collectionVariables.set('adId', res.data[0].id);",
+                  "  console.log('adId set:', res.data[0].id);",
+                  "}"
+                ]}
+              }]
+            },
+            {
+              "name": "Get Ad",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}/ads/{{adId}}?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}", "ads", "{{adId}}"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                }
+              }
+            },
+            {
+              "name": "Update Ad",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "X-API-Key", "value": "{{apiKey}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"PAUSED\"\n}" },
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}/ads/{{adId}}?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}", "ads", "{{adId}}"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                }
+              }
+            },
+            {
+              "name": "Delete Ad",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}/ads/{{adId}}?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}", "ads", "{{adId}}"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Insights & Reporting",
+          "item": [
+            {
+              "name": "Account-level Insights",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/insights?metaAdAccountId={{metaAdAccountId}}&externalCustomerId={{externalCustomerId}}&datePreset=last_30d",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["insights"],
+                  "query": [
+                    { "key": "metaAdAccountId", "value": "{{metaAdAccountId}}", "description": "act_xxx" },
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}" },
+                    { "key": "datePreset", "value": "last_30d", "description": "last_7d | last_30d | this_month | last_month" }
+                  ]
+                },
+                "description": "Pura account ka spend, impressions, clicks, CTR, CPM."
+              }
+            },
+            {
+              "name": "Campaign-level Insights",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/insights?metaCampaignId=&externalCustomerId={{externalCustomerId}}&datePreset=last_30d",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["insights"],
+                  "query": [
+                    { "key": "metaCampaignId", "value": "", "description": "Meta campaign ID (metaCampaignId from campaign list)" },
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}" },
+                    { "key": "datePreset", "value": "last_30d" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Ad Set-level Insights",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/insights?metaAdSetId=&externalCustomerId={{externalCustomerId}}&datePreset=last_7d",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["insights"],
+                  "query": [
+                    { "key": "metaAdSetId", "value": "", "description": "Meta Ad Set ID" },
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}" },
+                    { "key": "datePreset", "value": "last_7d" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Custom Date Range Insights",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/insights?metaAdAccountId={{metaAdAccountId}}&externalCustomerId={{externalCustomerId}}&since=2026-06-01&until=2026-06-30",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["insights"],
+                  "query": [
+                    { "key": "metaAdAccountId", "value": "{{metaAdAccountId}}" },
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}" },
+                    { "key": "since", "value": "2026-06-01", "description": "YYYY-MM-DD" },
+                    { "key": "until", "value": "2026-06-30", "description": "YYYY-MM-DD" }
+                  ]
                 }
               }
             }
