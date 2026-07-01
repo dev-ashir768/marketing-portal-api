@@ -28,6 +28,12 @@ enum CampaignObjective {
   LEADS
   APP_PROMOTION
   SALES
+  OUTCOME_AWARENESS
+  OUTCOME_TRAFFIC
+  OUTCOME_ENGAGEMENT
+  OUTCOME_LEADS
+  OUTCOME_APP_PROMOTION
+  OUTCOME_SALES
 }
 
 // Tenant-owning user. Each user belongs to exactly one tenant in this MVP;
