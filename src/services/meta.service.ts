@@ -104,6 +104,86 @@ export class MetaAccountClient {
     }
   }
 
+  async uploadImage(fileBuffer: Buffer, filename: string): Promise<{ imageHash: string }> {
+    try {
+      const acc: any = this.adAccount;
+      const result = await acc.createAdImage([], {
+        bytes: fileBuffer.toString("base64"),
+        filename,
+      });
+      const images = result._data?.images ?? result.images ?? {};
+      const first = Object.values(images)[0] as any;
+      if (!first?.hash) throw new Error("Meta did not return image hash");
+      return { imageHash: first.hash };
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to upload image to Meta");
+    }
+  }
+
+  async uploadVideo(fileBuffer: Buffer, filename: string, title: string): Promise<{ videoId: string }> {
+    try {
+      const acc: any = this.adAccount;
+      const result = await acc.createAdVideo([], {
+        bytes: fileBuffer.toString("base64"),
+        title,
+        filename,
+      });
+      const videoId = result._data?.id ?? result.id;
+      if (!videoId) throw new Error("Meta did not return video ID");
+      return { videoId: String(videoId) };
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to upload video to Meta");
+    }
+  }
+
+  async createAdCreative(params: {
+    name: string;
+    imageHash?: string;
+    videoId?: string;
+    headline?: string;
+    body?: string;
+    callToAction?: string;
+    linkUrl?: string;
+  }): Promise<{ metaCreativeId: string }> {
+    try {
+      const acc: any = this.adAccount;
+      const objectStorySpec: Record<string, unknown> = {
+        page_id: undefined, // Meta requires a page_id — pulled from account if possible
+      };
+
+      if (params.imageHash) {
+        objectStorySpec.link_data = {
+          image_hash: params.imageHash,
+          message: params.body,
+          link: params.linkUrl ?? "https://facebook.com",
+          call_to_action: params.callToAction
+            ? { type: params.callToAction }
+            : undefined,
+          name: params.headline,
+        };
+      } else if (params.videoId) {
+        objectStorySpec.video_data = {
+          video_id: params.videoId,
+          message: params.body,
+          call_to_action: params.callToAction
+            ? { type: params.callToAction, value: { link: params.linkUrl ?? "https://facebook.com" } }
+            : undefined,
+          title: params.headline,
+        };
+      }
+
+      const result = await acc.createAdCreative([], {
+        name: params.name,
+        object_story_spec: objectStorySpec,
+      });
+      const metaCreativeId = result._data?.id ?? result.id;
+      if (!metaCreativeId) throw new Error("Meta did not return creative ID");
+      return { metaCreativeId: String(metaCreativeId) };
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to create ad creative on Meta");
+    }
+  }
+
   async syncAdSets(metaCampaignId: string): Promise<Array<{
     id: string; name: string; status: string;
     daily_budget?: string; lifetime_budget?: string;

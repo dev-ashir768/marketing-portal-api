@@ -18,6 +18,7 @@
   "dependencies": {
     "@prisma/client": "^5.20.0",
     "@sentry/node": "^10.62.0",
+    "@types/multer": "^2.1.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -26,6 +27,7 @@
     "facebook-nodejs-business-sdk": "^21.0.3",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "zod": "^3.23.8"

@@ -44,6 +44,11 @@ enum AdStatus {
   ARCHIVED
 }
 
+enum CreativeMediaType {
+  IMAGE
+  VIDEO
+}
+
 model User {
   id           String  @id @default(uuid())
   email        String  @unique
@@ -64,12 +69,12 @@ model User {
 }
 
 model MetaApp {
-  id    String  @id @default(uuid())
+  id     String  @id @default(uuid())
   userId String
   label  String?
   appId  String  @unique
 
-  appSecretEncrypted String  @db.Text
+  appSecretEncrypted String @db.Text
   appSecretIv        String
   appSecretAuthTag   String
 
@@ -85,12 +90,12 @@ model MetaApp {
 }
 
 model MetaAccount {
-  id              String  @id @default(uuid())
-  userId          String
-  metaAppId       String?
-  metaAdAccountId String  @unique
-  facebookUserId  String?
-  businessName    String?
+  id                 String  @id @default(uuid())
+  userId             String
+  metaAppId          String?
+  metaAdAccountId    String  @unique
+  facebookUserId     String?
+  businessName       String?
   externalCustomerId String?
 
   accessTokenEncrypted String   @db.Text
@@ -103,11 +108,12 @@ model MetaAccount {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  metaApp   MetaApp?    @relation(fields: [metaAppId], references: [id], onDelete: SetNull)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metaApp   MetaApp?     @relation(fields: [metaAppId], references: [id], onDelete: SetNull)
   campaigns AdCampaign[]
   adSets    AdSet[]
   ads       Ad[]
+  creatives AdCreative[]
 
   @@index([userId])
   @@index([metaAppId])
@@ -117,16 +123,16 @@ model MetaAccount {
 }
 
 model AdCampaign {
-  id             String            @id @default(uuid())
-  metaAccountId  String
-  metaCampaignId String?           @unique
-  name           String
-  objective      CampaignObjective
-  status         CampaignStatus    @default(DRAFT)
+  id                  String            @id @default(uuid())
+  metaAccountId       String
+  metaCampaignId      String?           @unique
+  name                String
+  objective           CampaignObjective
+  status              CampaignStatus    @default(DRAFT)
   dailyBudgetCents    Int?
   lifetimeBudgetCents Int?
-  startTime      DateTime?
-  endTime        DateTime?
+  startTime           DateTime?
+  endTime             DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -139,16 +145,16 @@ model AdCampaign {
 }
 
 model AdSet {
-  id            String      @id @default(uuid())
-  metaAccountId String
-  campaignId    String
-  metaAdSetId   String?     @unique
-  name          String
-  status        AdSetStatus @default(PAUSED)
+  id                  String      @id @default(uuid())
+  metaAccountId       String
+  campaignId          String
+  metaAdSetId         String?     @unique
+  name                String
+  status              AdSetStatus @default(PAUSED)
   dailyBudgetCents    Int?
   lifetimeBudgetCents Int?
-  startTime     DateTime?
-  endTime       DateTime?
+  startTime           DateTime?
+  endTime             DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -163,20 +169,50 @@ model AdSet {
 }
 
 model Ad {
-  id          String   @id @default(uuid())
+  id            String   @id @default(uuid())
   metaAccountId String
-  adSetId     String
-  metaAdId    String?  @unique
-  name        String
-  status      AdStatus @default(PAUSED)
+  adSetId       String
+  metaAdId      String?  @unique
+  name          String
+  status        AdStatus @default(PAUSED)
+  creativeId    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   metaAccount MetaAccount @relation(fields: [metaAccountId], references: [id], onDelete: Cascade)
   adSet       AdSet       @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+  creative    AdCreative? @relation(fields: [creativeId], references: [id], onDelete: SetNull)
 
   @@index([metaAccountId])
   @@index([adSetId])
   @@map("ads")
+}
+
+// Stores uploaded image/video reference after uploading to Meta.
+// imageHash (for images) or videoId (for videos) is what Meta needs
+// when creating an AdCreative or Ad.
+model AdCreative {
+  id              String            @id @default(uuid())
+  metaAccountId   String
+  metaCreativeId  String?           @unique // Meta's creative ID (after createAdCreative)
+  mediaType       CreativeMediaType
+  // For images: Meta returns an image_hash
+  imageHash       String?
+  // For videos: Meta returns a video_id
+  videoId         String?
+  // Ad copy
+  headline        String?
+  body            String?           @db.Text
+  callToAction    String?           // e.g. "SHOP_NOW", "LEARN_MORE", "SIGN_UP"
+  linkUrl         String?           @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  metaAccount MetaAccount @relation(fields: [metaAccountId], references: [id], onDelete: Cascade)
+  ads         Ad[]
+
+  @@index([metaAccountId])
+  @@map("ad_creatives")
 }
