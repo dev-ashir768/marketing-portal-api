@@ -22,12 +22,6 @@ enum CampaignStatus {
 }
 
 enum CampaignObjective {
-  AWARENESS
-  TRAFFIC
-  ENGAGEMENT
-  LEADS
-  APP_PROMOTION
-  SALES
   OUTCOME_AWARENESS
   OUTCOME_TRAFFIC
   OUTCOME_ENGAGEMENT
@@ -110,10 +104,6 @@ model MetaAccount {
   accessTokenEncrypted String @db.Text
   accessTokenIv        String
   accessTokenAuthTag   String
-
-  refreshTokenEncrypted String? @db.Text
-  refreshTokenIv        String?
-  refreshTokenAuthTag   String?
 
   tokenExpiresAt  DateTime?
   isActive        Boolean  @default(true)

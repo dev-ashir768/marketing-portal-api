@@ -129,6 +129,16 @@ export async function getOwnedMetaAccount(userId: string, metaAccountId: string)
   return account;
 }
 
+export async function getOwnedMetaAccountByAdAccountId(userId: string, metaAdAccountId: string) {
+  const account = await prisma.metaAccount.findFirst({
+    where: { metaAdAccountId, userId },
+  });
+  if (!account) {
+    throw new AppError("Meta account not found for this act_xxx ID", 404);
+  }
+  return account;
+}
+
 // Strips encrypted token material before returning to clients.
 function sanitizeMetaAccount(account: {
   accessTokenEncrypted: string;

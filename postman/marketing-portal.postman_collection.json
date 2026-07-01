@@ -10,7 +10,8 @@
     { "key": "token", "value": "" },
     { "key": "apiKey", "value": "" },
     { "key": "metaAppId", "value": "" },
-    { "key": "metaAccountId", "value": "" },
+    { "key": "metaAccountId", "value": "", "description": "Internal UUID — List Meta Accounts chalane par auto-set hota hai" },
+    { "key": "metaAdAccountId", "value": "", "description": "Meta ka act_xxx ID — List Meta Accounts chalane par auto-set hota hai" },
     { "key": "campaignId", "value": "" },
     { "key": "externalCustomerId", "value": "customer-123" }
   ],
@@ -222,8 +223,26 @@
               "request": {
                 "method": "GET",
                 "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
-                "url": { "raw": "{{baseUrl}}/meta-accounts", "host": ["{{baseUrl}}"], "path": ["meta-accounts"] }
-              }
+                "url": { "raw": "{{baseUrl}}/meta-accounts", "host": ["{{baseUrl}}"], "path": ["meta-accounts"] },
+                "description": "Sab connected Meta accounts. Response mein:\n- id = metaAccountId (internal UUID, Campaigns mein use karo)\n- metaAdAccountId = act_xxx (Meta ka ID, sync mein directly bhi use kar sakte ho)"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res.success && res.data && res.data.length > 0) {",
+                      "  const first = res.data[0];",
+                      "  pm.collectionVariables.set('metaAccountId', first.id);",
+                      "  pm.collectionVariables.set('metaAdAccountId', first.metaAdAccountId);",
+                      "  console.log('✅ metaAccountId (UUID):', first.id);",
+                      "  console.log('✅ metaAdAccountId (act_xxx):', first.metaAdAccountId);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
             },
             {
               "name": "List Meta Accounts (ek customer ke)",
@@ -261,7 +280,21 @@
           "name": "Campaigns",
           "item": [
             {
-              "name": "Sync Campaigns from Meta (existing + new)",
+              "name": "Sync Campaigns from Meta (act_xxx se)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/sync?metaAdAccountId={{metaAdAccountId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "sync"],
+                  "query": [{ "key": "metaAdAccountId", "value": "{{metaAdAccountId}}", "description": "Meta ka act_xxx ID (e.g. act_221314300585657)" }]
+                },
+                "description": "✅ RECOMMENDED: Meta ka act_xxx ID directly use karo.\n\nMeta Ads Manager ki existing + nai campaigns DB mein sync karta hai.\nServer start pe aur phir har 30 min automatic bhi hota hai."
+              }
+            },
+            {
+              "name": "Sync Campaigns from Meta (internal UUID se)",
               "request": {
                 "method": "POST",
                 "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
@@ -269,9 +302,9 @@
                   "raw": "{{baseUrl}}/campaigns/sync?metaAccountId={{metaAccountId}}",
                   "host": ["{{baseUrl}}"],
                   "path": ["campaigns", "sync"],
-                  "query": [{ "key": "metaAccountId", "value": "{{metaAccountId}}" }]
+                  "query": [{ "key": "metaAccountId", "value": "{{metaAccountId}}", "description": "Internal DB UUID (List Meta Accounts se milta hai)" }]
                 },
-                "description": "Meta Ads Manager ki existing + nai campaigns DB mein sync karta hai. Server start pe aur phir har 30 min automatic hota hai."
+                "description": "Internal UUID se sync. List Meta Accounts chalao pehle — auto-set ho jata hai."
               }
             },
             {

@@ -1,7 +1,7 @@
 import { prisma } from "../config/prisma";
 import { CampaignStatus, CampaignObjective } from "@prisma/client";
 import { AppError } from "../utils/AppError";
-import { getOwnedMetaAccount } from "./metaAccount.service";
+import { getOwnedMetaAccount, getOwnedMetaAccountByAdAccountId } from "./metaAccount.service";
 import { MetaAccountClient } from "./meta.service";
 import { CreateCampaignInput, UpdateCampaignInput } from "../utils/schemas/campaign.schema";
 
@@ -73,8 +73,13 @@ export async function deleteCampaign(userId: string, campaignId: string) {
 // Pulls all campaigns from Meta for a given ad account and upserts them
 // into the DB — so existing Meta Ads Manager campaigns appear here too,
 // and any new ones published on Meta side are picked up on the next sync.
-export async function syncCampaignsFromMeta(userId: string, metaAccountId: string) {
-  const metaAccount = await getOwnedMetaAccount(userId, metaAccountId);
+export async function syncCampaignsFromMeta(
+  userId: string,
+  lookup: { metaAccountId?: string; metaAdAccountId?: string }
+) {
+  const metaAccount = lookup.metaAccountId
+    ? await getOwnedMetaAccount(userId, lookup.metaAccountId)
+    : await getOwnedMetaAccountByAdAccountId(userId, lookup.metaAdAccountId!);
   const client = new MetaAccountClient(metaAccount);
   const metaCampaigns = await client.syncCampaigns();
 

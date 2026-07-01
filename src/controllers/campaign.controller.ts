@@ -48,8 +48,12 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
 
 export const sync = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
+  // Accept either internal UUID (metaAccountId) or Meta's act_xxx (metaAdAccountId)
   const metaAccountId = typeof req.query.metaAccountId === "string" ? req.query.metaAccountId : undefined;
-  if (!metaAccountId) throw new AppError("metaAccountId query param is required", 400);
-  const result = await syncCampaignsFromMeta(user.id, metaAccountId);
+  const metaAdAccountId = typeof req.query.metaAdAccountId === "string" ? req.query.metaAdAccountId : undefined;
+  if (!metaAccountId && !metaAdAccountId) {
+    throw new AppError("Pass either metaAccountId (internal UUID) or metaAdAccountId (act_xxx)", 400);
+  }
+  const result = await syncCampaignsFromMeta(user.id, { metaAccountId, metaAdAccountId });
   res.status(200).json({ success: true, data: result });
 });
