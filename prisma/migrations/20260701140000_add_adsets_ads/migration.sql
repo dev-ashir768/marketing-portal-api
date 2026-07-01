@@ -7,12 +7,6 @@ UPDATE `ad_campaigns` SET `objective` = CONCAT('OUTCOME_', `objective`) WHERE `o
 -- Now drop old values
 ALTER TABLE `ad_campaigns` MODIFY COLUMN `objective` ENUM('OUTCOME_AWARENESS','OUTCOME_TRAFFIC','OUTCOME_ENGAGEMENT','OUTCOME_LEADS','OUTCOME_APP_PROMOTION','OUTCOME_SALES') NOT NULL;
 
--- AddColumn: Remove refreshToken fields if they exist (safe — IGNORE error if already gone)
-ALTER TABLE `meta_accounts`
-  DROP COLUMN IF EXISTS `refreshTokenEncrypted`,
-  DROP COLUMN IF EXISTS `refreshTokenIv`,
-  DROP COLUMN IF EXISTS `refreshTokenAuthTag`;
-
 -- CreateTable: ad_sets
 CREATE TABLE `ad_sets` (
     `id` VARCHAR(191) NOT NULL,
