@@ -13,6 +13,7 @@ enum Role {
   MEMBER
 }
 
+
 enum CampaignStatus {
   ACTIVE
   PAUSED
