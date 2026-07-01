@@ -38,7 +38,6 @@ export class MetaAccountClient {
     });
 
     const api = FacebookAdsApi.init(accessToken);
-    api.setApiVersion(env.META_API_VERSION);
 
     this.adAccount = new AdAccount(metaAccount.metaAdAccountId, undefined, api);
   }
