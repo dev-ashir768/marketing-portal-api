@@ -17,6 +17,7 @@
     { "key": "metaAdSetId", "value": "", "description": "Meta's adset ID — List Ad Sets se auto-set hota hai" },
     { "key": "adSetId", "value": "" },
     { "key": "adId", "value": "" },
+    { "key": "creativeId", "value": "" },
     { "key": "externalCustomerId", "value": "customer-123" }
   ],
   "item": [
@@ -596,6 +597,129 @@
                   "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}/ads/{{adId}}?externalCustomerId={{externalCustomerId}}",
                   "host": ["{{baseUrl}}"],
                   "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}", "ads", "{{adId}}"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Creatives (Image & Video)",
+          "item": [
+            {
+              "name": "Upload Image",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "file", "type": "file", "description": "Image file — JPEG, PNG, GIF, WEBP (max 100MB)" },
+                    { "key": "metaAdAccountId", "value": "{{metaAdAccountId}}", "type": "text" },
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}", "type": "text" },
+                    { "key": "headline", "value": "Summer Sale!", "type": "text" },
+                    { "key": "description", "value": "Best deals this season", "type": "text" },
+                    { "key": "callToAction", "value": "SHOP_NOW", "type": "text", "description": "SHOP_NOW | LEARN_MORE | SIGN_UP | CONTACT_US | DOWNLOAD | GET_OFFER | WATCH_MORE" },
+                    { "key": "linkUrl", "value": "https://oms.getorio.com", "type": "text" }
+                  ]
+                },
+                "url": { "raw": "{{baseUrl}}/creatives/upload", "host": ["{{baseUrl}}"], "path": ["creatives", "upload"] },
+                "description": "Image Meta pe upload hoti hai directly.\nResponse mein imageHash milega — wo Meta ko ad banane ke liye chahiye."
+              },
+              "event": [{ "listen": "test", "script": { "exec": [
+                "if (pm.response.code === 201) {",
+                "  pm.collectionVariables.set('creativeId', pm.response.json().data.id);",
+                "  console.log('✅ creativeId:', pm.response.json().data.id);",
+                "  console.log('✅ imageHash:', pm.response.json().data.imageHash);",
+                "}"
+              ]}}]
+            },
+            {
+              "name": "Upload Video",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "file", "type": "file", "description": "Video file — MP4, MOV, AVI (max 100MB)" },
+                    { "key": "metaAdAccountId", "value": "{{metaAdAccountId}}", "type": "text" },
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}", "type": "text" },
+                    { "key": "headline", "value": "Watch Our Ad", "type": "text" },
+                    { "key": "description", "value": "Video ad description", "type": "text" },
+                    { "key": "callToAction", "value": "WATCH_MORE", "type": "text" },
+                    { "key": "linkUrl", "value": "https://oms.getorio.com", "type": "text" }
+                  ]
+                },
+                "url": { "raw": "{{baseUrl}}/creatives/upload", "host": ["{{baseUrl}}"], "path": ["creatives", "upload"] },
+                "description": "Video Meta pe upload hota hai directly.\nResponse mein videoId milega."
+              },
+              "event": [{ "listen": "test", "script": { "exec": [
+                "if (pm.response.code === 201) {",
+                "  pm.collectionVariables.set('creativeId', pm.response.json().data.id);",
+                "  console.log('✅ creativeId:', pm.response.json().data.id);",
+                "  console.log('✅ videoId:', pm.response.json().data.videoId);",
+                "}"
+              ]}}]
+            },
+            {
+              "name": "List Creatives",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/creatives?externalCustomerId={{externalCustomerId}}&metaAdAccountId={{metaAdAccountId}}&page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["creatives"],
+                  "query": [
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}" },
+                    { "key": "metaAdAccountId", "value": "{{metaAdAccountId}}" },
+                    { "key": "page", "value": "1" },
+                    { "key": "limit", "value": "20" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Creative",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/creatives/{{creativeId}}?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["creatives", "{{creativeId}}"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                }
+              }
+            },
+            {
+              "name": "Attach Creative to Ad",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "X-API-Key", "value": "{{apiKey}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"adId\": \"{{adId}}\"\n}" },
+                "url": {
+                  "raw": "{{baseUrl}}/creatives/{{creativeId}}/attach?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["creatives", "{{creativeId}}", "attach"],
+                  "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
+                },
+                "description": "Creative ko Ad se link karo. Ad mein creativeId set ho jayegi."
+              }
+            },
+            {
+              "name": "Delete Creative",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/creatives/{{creativeId}}?externalCustomerId={{externalCustomerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["creatives", "{{creativeId}}"],
                   "query": [{ "key": "externalCustomerId", "value": "{{externalCustomerId}}" }]
                 }
               }
