@@ -1,5 +1,4 @@
 import { FacebookAdsApi, AdAccount, Campaign } from "facebook-nodejs-business-sdk";
-import { env } from "../config/env";
 import { decryptToken } from "../utils/crypto";
 import { AppError } from "../utils/AppError";
 import { MetaAccount } from "@prisma/client";
