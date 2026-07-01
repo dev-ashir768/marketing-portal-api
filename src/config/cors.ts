@@ -13,6 +13,7 @@ async function getAllowedPortalOrigins(): Promise<Set<string>> {
     return cachedPortalOrigins;
   }
 
+  
   const users = await prisma.user.findMany({
     where: { portalUrl: { not: null } },
     select: { portalUrl: true },
