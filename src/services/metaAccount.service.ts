@@ -12,7 +12,6 @@ export async function connectMetaAccount(userId: string, input: ConnectMetaAccou
   }
 
   const accessTokenEnc = encryptToken(input.accessToken);
-  const refreshTokenEnc = input.refreshToken ? encryptToken(input.refreshToken) : undefined;
 
   const account = await prisma.metaAccount.create({
     data: {
@@ -23,9 +22,6 @@ export async function connectMetaAccount(userId: string, input: ConnectMetaAccou
       accessTokenEncrypted: accessTokenEnc.ciphertext,
       accessTokenIv: accessTokenEnc.iv,
       accessTokenAuthTag: accessTokenEnc.authTag,
-      refreshTokenEncrypted: refreshTokenEnc?.ciphertext,
-      refreshTokenIv: refreshTokenEnc?.iv,
-      refreshTokenAuthTag: refreshTokenEnc?.authTag,
       tokenExpiresAt: input.tokenExpiresAt,
     },
   });
@@ -144,18 +140,12 @@ function sanitizeMetaAccount(account: {
   accessTokenEncrypted: string;
   accessTokenIv: string;
   accessTokenAuthTag: string;
-  refreshTokenEncrypted: string | null;
-  refreshTokenIv: string | null;
-  refreshTokenAuthTag: string | null;
   [key: string]: unknown;
 }) {
   const {
     accessTokenEncrypted: _ate,
     accessTokenIv: _aiv,
     accessTokenAuthTag: _aat,
-    refreshTokenEncrypted: _rte,
-    refreshTokenIv: _riv,
-    refreshTokenAuthTag: _rat,
     ...safe
   } = account;
   return safe;

@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-const objectiveEnum = z.enum(["AWARENESS", "TRAFFIC", "ENGAGEMENT", "LEADS", "APP_PROMOTION", "SALES"]);
+const objectiveEnum = z.enum([
+  "OUTCOME_AWARENESS",
+  "OUTCOME_TRAFFIC",
+  "OUTCOME_ENGAGEMENT",
+  "OUTCOME_LEADS",
+  "OUTCOME_APP_PROMOTION",
+  "OUTCOME_SALES",
+]);
 const statusEnum = z.enum(["ACTIVE", "PAUSED", "DELETED", "ARCHIVED", "DRAFT"]);
 
 export const createCampaignSchema = z.object({
