@@ -21,6 +21,52 @@ async function getOwnedAdSet(userId: string, adSetId: string, externalCustomerId
   return adSet;
 }
 
+export async function createAd(
+  userId: string,
+  adSetId: string,
+  input: {
+    name: string;
+    status?: AdStatus;
+    creativeId: string; // internal DB creative ID
+    externalCustomerId?: string;
+  }
+) {
+  const adSet = await getOwnedAdSet(userId, adSetId, input.externalCustomerId);
+
+  if (!adSet.metaAdSetId) {
+    throw new AppError("Ad set has not been synced with Meta — cannot create ad without metaAdSetId", 400);
+  }
+
+  // Resolve creative and verify ownership
+  const creative = await prisma.adCreative.findFirst({
+    where: {
+      id: input.creativeId,
+      metaAccountId: adSet.metaAccountId,
+    },
+  });
+  if (!creative) throw new AppError("Creative not found or does not belong to this account", 404);
+  if (!creative.metaCreativeId) throw new AppError("Creative has not been pushed to Meta yet — no metaCreativeId", 400);
+
+  const client = new MetaAccountClient(adSet.metaAccount);
+  const metaResult = await client.createAd({
+    metaAdSetId: adSet.metaAdSetId,
+    name: input.name,
+    status: input.status ?? "PAUSED",
+    metaCreativeId: creative.metaCreativeId,
+  });
+
+  return prisma.ad.create({
+    data: {
+      metaAccountId: adSet.metaAccountId,
+      adSetId: adSet.id,
+      metaAdId: metaResult.id,
+      name: input.name,
+      status: input.status ?? "PAUSED",
+      creativeId: creative.id,
+    },
+  });
+}
+
 export async function syncAds(
   userId: string,
   adSetId: string,

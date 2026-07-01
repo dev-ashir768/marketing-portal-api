@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { AppError } from "../utils/AppError";
-import { syncAds, listAds, getAd, updateAd, deleteAd } from "../services/ad.service";
+import { createAd, syncAds, listAds, getAd, updateAd, deleteAd } from "../services/ad.service";
 
 function requireUser(req: Request) {
   if (!req.user) throw new AppError("Unauthorized", 401);
@@ -12,6 +12,15 @@ function qs(req: Request, key: string): string | undefined {
   return typeof req.query[key] === "string" ? (req.query[key] as string) : undefined;
 }
 
+
+export const create = asyncHandler(async (req: Request, res: Response) => {
+  const user = requireUser(req);
+  const ad = await createAd(user.id, req.params.adSetId, {
+    ...req.body,
+    externalCustomerId: qs(req, "externalCustomerId") ?? req.body.externalCustomerId,
+  });
+  res.status(201).json({ success: true, data: ad });
+});
 
 export const sync = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);

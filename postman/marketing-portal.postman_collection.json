@@ -426,6 +426,37 @@
           "name": "Ad Sets",
           "item": [
             {
+              "name": "Create Ad Set (Meta pe bhi push hoga)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "X-API-Key", "value": "{{apiKey}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"My Ad Set\",\n  \"status\": \"PAUSED\",\n  \"dailyBudgetCents\": 1000,\n  \"billingEvent\": \"IMPRESSIONS\",\n  \"optimizationGoal\": \"REACH\",\n  \"targeting\": {\n    \"geo_locations\": { \"countries\": [\"PK\"] },\n    \"age_min\": 18,\n    \"age_max\": 45\n  },\n  \"externalCustomerId\": \"{{externalCustomerId}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets"]
+                },
+                "description": "Meta pe naya Ad Set create karo. Campaign ka metaCampaignId hona zaruri hai."
+              },
+              "event": [{
+                "listen": "test",
+                "script": { "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data) {",
+                  "  pm.collectionVariables.set('adSetId', res.data.id);",
+                  "  if (res.data.metaAdSetId) pm.collectionVariables.set('metaAdSetId', res.data.metaAdSetId);",
+                  "  console.log('✅ Ad Set created:', res.data.id, '| metaAdSetId:', res.data.metaAdSetId);",
+                  "}"
+                ]}
+              }]
+            },
+            {
               "name": "Sync Ad Sets (campaign ke andar)",
               "request": {
                 "method": "POST",
@@ -517,6 +548,36 @@
         {
           "name": "Ads",
           "item": [
+            {
+              "name": "Create Ad (Meta pe bhi push hoga)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "X-API-Key", "value": "{{apiKey}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"My Ad\",\n  \"status\": \"PAUSED\",\n  \"creativeId\": \"{{creativeId}}\",\n  \"externalCustomerId\": \"{{externalCustomerId}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/{{campaignId}}/ad-sets/{{adSetId}}/ads",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "{{campaignId}}", "ad-sets", "{{adSetId}}", "ads"]
+                },
+                "description": "Meta pe naya Ad create karo. creativeId = DB creative ka UUID (upload se mila tha). Ad Set ka metaAdSetId aur Creative ka metaCreativeId hona zaruri hai."
+              },
+              "event": [{
+                "listen": "test",
+                "script": { "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data) {",
+                  "  pm.collectionVariables.set('adId', res.data.id);",
+                  "  console.log('✅ Ad created:', res.data.id, '| metaAdId:', res.data.metaAdId);",
+                  "}"
+                ]}
+              }]
+            },
             {
               "name": "Sync Ads (ad set ke andar)",
               "request": {

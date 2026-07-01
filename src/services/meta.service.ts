@@ -84,6 +84,64 @@ export class MetaAccountClient {
     }
   }
 
+  async createAdSet(params: {
+    metaCampaignId: string;
+    name: string;
+    status: string;
+    dailyBudgetCents?: number;
+    lifetimeBudgetCents?: number;
+    billingEvent: string;
+    optimizationGoal: string;
+    targeting: Record<string, unknown>;
+    startTime?: string;
+    endTime?: string;
+  }) {
+    try {
+      const createParams: Record<string, unknown> = {
+        name: params.name,
+        campaign_id: params.metaCampaignId,
+        status: params.status,
+        billing_event: params.billingEvent,
+        optimization_goal: params.optimizationGoal,
+        targeting: params.targeting,
+      };
+      if (params.dailyBudgetCents) createParams.daily_budget = params.dailyBudgetCents;
+      if (params.lifetimeBudgetCents) createParams.lifetime_budget = params.lifetimeBudgetCents;
+      if (params.startTime) createParams.start_time = params.startTime;
+      if (params.endTime) createParams.end_time = params.endTime;
+
+      const acc: any = this.adAccount;
+      const result = await acc.createAdSet([], createParams);
+      const id = result._data?.id ?? result.id;
+      if (!id) throw new Error("Meta did not return ad set ID");
+      return { id: String(id) };
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to create ad set on Meta");
+    }
+  }
+
+  async createAd(params: {
+    metaAdSetId: string;
+    name: string;
+    status: string;
+    metaCreativeId: string;
+  }) {
+    try {
+      const acc: any = this.adAccount;
+      const result = await acc.createAd([], {
+        name: params.name,
+        adset_id: params.metaAdSetId,
+        status: params.status,
+        creative: { creative_id: params.metaCreativeId },
+      });
+      const id = result._data?.id ?? result.id;
+      if (!id) throw new Error("Meta did not return ad ID");
+      return { id: String(id) };
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to create ad on Meta");
+    }
+  }
+
   async updateCampaign(metaCampaignId: string, params: {
     name?: string;
     status?: string;

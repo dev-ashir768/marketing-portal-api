@@ -21,6 +21,57 @@ async function getOwnedCampaign(userId: string, campaignId: string, externalCust
   return campaign;
 }
 
+export async function createAdSet(
+  userId: string,
+  campaignId: string,
+  input: {
+    name: string;
+    status?: AdSetStatus;
+    dailyBudgetCents?: number;
+    lifetimeBudgetCents?: number;
+    billingEvent: string;
+    optimizationGoal: string;
+    targeting: Record<string, unknown>;
+    startTime?: string;
+    endTime?: string;
+    externalCustomerId?: string;
+  }
+) {
+  const campaign = await getOwnedCampaign(userId, campaignId, input.externalCustomerId);
+
+  if (!campaign.metaCampaignId) {
+    throw new AppError("Campaign has not been synced with Meta — cannot create ad set without metaCampaignId", 400);
+  }
+
+  const client = new MetaAccountClient(campaign.metaAccount);
+  const metaResult = await client.createAdSet({
+    metaCampaignId: campaign.metaCampaignId,
+    name: input.name,
+    status: input.status ?? "PAUSED",
+    dailyBudgetCents: input.dailyBudgetCents,
+    lifetimeBudgetCents: input.lifetimeBudgetCents,
+    billingEvent: input.billingEvent,
+    optimizationGoal: input.optimizationGoal,
+    targeting: input.targeting,
+    startTime: input.startTime,
+    endTime: input.endTime,
+  });
+
+  return prisma.adSet.create({
+    data: {
+      metaAccountId: campaign.metaAccountId,
+      campaignId: campaign.id,
+      metaAdSetId: metaResult.id,
+      name: input.name,
+      status: input.status ?? "PAUSED",
+      dailyBudgetCents: input.dailyBudgetCents ?? null,
+      lifetimeBudgetCents: input.lifetimeBudgetCents ?? null,
+      startTime: input.startTime ? new Date(input.startTime) : null,
+      endTime: input.endTime ? new Date(input.endTime) : null,
+    },
+  });
+}
+
 export async function syncAdSets(
   userId: string,
   campaignId: string,
