@@ -6,19 +6,14 @@ import { logger } from "../config/logger";
 import { CampaignStatus, AdSetStatus, AdStatus } from "@prisma/client";
 
 // Meta sends GET to verify the endpoint — respond with hub.challenge
+// Security is handled on POST via X-Hub-Signature-256 (App Secret).
+// Each customer sets their own verify_token in their Meta App — we accept any value here.
 export const verifyWebhook = (req: Request, res: Response) => {
   const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN;
-  if (!verifyToken) {
-    logger.warn("META_WEBHOOK_VERIFY_TOKEN not set — webhook verification will always fail");
-    return res.sendStatus(403);
-  }
-
-  if (mode === "subscribe" && token === verifyToken) {
-    logger.info("Meta webhook verified successfully");
+  if (mode === "subscribe" && challenge) {
+    logger.info("Meta webhook endpoint verified");
     return res.status(200).send(challenge);
   }
 
