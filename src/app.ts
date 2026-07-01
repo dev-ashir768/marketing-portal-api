@@ -5,10 +5,12 @@ import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 import { corsMiddleware } from "./config/cors";
 import { globalRateLimiter, authRateLimiter } from "./middlewares/rateLimit.middleware";
 import { httpLogger } from "./config/logger";
+import { prisma } from "./config/prisma";
 
 export function createApp(): Application {
   const app = express();
 
+  app.set("trust proxy", 1);
   app.use(helmet());
   app.use(corsMiddleware);
   app.use(express.json());
@@ -16,7 +18,24 @@ export function createApp(): Application {
   app.use(httpLogger);
   app.use(globalRateLimiter);
 
-  app.get("/health", (_req, res) => res.status(200).json({ success: true, data: { status: "ok" } }));
+  app.get("/health", async (_req, res) => {
+    let dbStatus = "ok";
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch {
+      dbStatus = "error";
+    }
+    const status = dbStatus === "ok" ? "ok" : "degraded";
+    res.status(dbStatus === "ok" ? 200 : 503).json({
+      success: dbStatus === "ok",
+      data: {
+        status,
+        db: dbStatus,
+        uptime: Math.floor(process.uptime()),
+        timestamp: new Date().toISOString(),
+      },
+    });
+  });
 
   app.use("/api/v1/auth/login", authRateLimiter);
   app.use("/api/v1/auth/register", authRateLimiter);
