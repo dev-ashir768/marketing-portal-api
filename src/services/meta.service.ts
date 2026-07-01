@@ -84,6 +84,52 @@ export class MetaAccountClient {
     }
   }
 
+  async updateCampaign(metaCampaignId: string, params: {
+    name?: string;
+    status?: string;
+    dailyBudgetCents?: number | null;
+    lifetimeBudgetCents?: number | null;
+  }) {
+    try {
+      const campaign: any = new Campaign(metaCampaignId);
+      const updateParams: Record<string, unknown> = {};
+      if (params.name !== undefined) updateParams.name = params.name;
+      if (params.status !== undefined) updateParams.status = params.status;
+      if (params.dailyBudgetCents !== undefined && params.dailyBudgetCents !== null) {
+        updateParams.daily_budget = params.dailyBudgetCents;
+      }
+      if (params.lifetimeBudgetCents !== undefined && params.lifetimeBudgetCents !== null) {
+        updateParams.lifetime_budget = params.lifetimeBudgetCents;
+      }
+      await campaign.update([], updateParams);
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to update campaign on Meta");
+    }
+  }
+
+  async updateAdSet(metaAdSetId: string, params: {
+    name?: string;
+    status?: string;
+    dailyBudgetCents?: number | null;
+    lifetimeBudgetCents?: number | null;
+  }) {
+    try {
+      const adSet: any = new AdSet(metaAdSetId);
+      const updateParams: Record<string, unknown> = {};
+      if (params.name !== undefined) updateParams.name = params.name;
+      if (params.status !== undefined) updateParams.status = params.status;
+      if (params.dailyBudgetCents !== undefined && params.dailyBudgetCents !== null) {
+        updateParams.daily_budget = params.dailyBudgetCents;
+      }
+      if (params.lifetimeBudgetCents !== undefined && params.lifetimeBudgetCents !== null) {
+        updateParams.lifetime_budget = params.lifetimeBudgetCents;
+      }
+      await adSet.update([], updateParams);
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to update ad set on Meta");
+    }
+  }
+
   async listCampaigns() {
     try {
       return await this.adAccount.getCampaigns(["id", "name", "status", "objective"]);

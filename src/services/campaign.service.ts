@@ -137,7 +137,20 @@ export async function updateCampaign(
   input: UpdateCampaignInput,
   externalCustomerId?: string
 ) {
-  await getCampaign(userId, campaignId, externalCustomerId);
+  const campaign = await getCampaign(userId, campaignId, externalCustomerId);
+
+  // Push to Meta if this campaign exists there
+  if (campaign.metaCampaignId) {
+    const metaAccount = await prisma.metaAccount.findUniqueOrThrow({ where: { id: campaign.metaAccountId } });
+    const client = new MetaAccountClient(metaAccount);
+    await client.updateCampaign(campaign.metaCampaignId, {
+      name: input.name,
+      status: input.status,
+      dailyBudgetCents: input.dailyBudgetCents,
+      lifetimeBudgetCents: input.lifetimeBudgetCents,
+    });
+  }
+
   return prisma.adCampaign.update({ where: { id: campaignId }, data: input });
 }
 

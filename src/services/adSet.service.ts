@@ -104,10 +104,23 @@ export async function getAdSet(userId: string, adSetId: string, externalCustomer
 export async function updateAdSet(
   userId: string,
   adSetId: string,
-  input: { name?: string; status?: AdSetStatus },
+  input: { name?: string; status?: AdSetStatus; dailyBudgetCents?: number | null; lifetimeBudgetCents?: number | null },
   externalCustomerId?: string
 ) {
-  await getAdSet(userId, adSetId, externalCustomerId);
+  const adSet = await getAdSet(userId, adSetId, externalCustomerId);
+
+  // Push to Meta if this ad set exists there
+  if (adSet.metaAdSetId) {
+    const metaAccount = await prisma.metaAccount.findUniqueOrThrow({ where: { id: adSet.metaAccountId } });
+    const client = new MetaAccountClient(metaAccount);
+    await client.updateAdSet(adSet.metaAdSetId, {
+      name: input.name,
+      status: input.status,
+      dailyBudgetCents: input.dailyBudgetCents,
+      lifetimeBudgetCents: input.lifetimeBudgetCents,
+    });
+  }
+
   return prisma.adSet.update({ where: { id: adSetId }, data: input });
 }
 
