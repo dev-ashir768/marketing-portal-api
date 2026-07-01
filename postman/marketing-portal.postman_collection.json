@@ -12,7 +12,9 @@
     { "key": "metaAppId", "value": "" },
     { "key": "metaAccountId", "value": "", "description": "Internal UUID — List Meta Accounts chalane par auto-set hota hai" },
     { "key": "metaAdAccountId", "value": "", "description": "Meta ka act_xxx ID — List Meta Accounts chalane par auto-set hota hai" },
-    { "key": "campaignId", "value": "" },
+    { "key": "campaignId", "value": "", "description": "Internal UUID" },
+    { "key": "metaCampaignId", "value": "", "description": "Meta's campaign ID — List Campaigns se auto-set hota hai" },
+    { "key": "metaAdSetId", "value": "", "description": "Meta's adset ID — List Ad Sets se auto-set hota hai" },
     { "key": "adSetId", "value": "" },
     { "key": "adId", "value": "" },
     { "key": "externalCustomerId", "value": "customer-123" }
@@ -327,7 +329,7 @@
               ]
             },
             {
-              "name": "List Campaigns (customer ke saare)",
+              "name": "List Campaigns (customer ke saare — auto-sets campaignId + metaCampaignId)",
               "request": {
                 "method": "GET",
                 "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
@@ -340,7 +342,22 @@
                   ]
                 },
                 "description": "Customer ke saare campaigns (saare Meta accounts across). externalCustomerId required."
-              }
+              },
+              "event": [{
+                "listen": "test",
+                "script": { "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.length > 0) {",
+                  "  const first = res.data[0];",
+                  "  pm.collectionVariables.set('campaignId', first.id);",
+                  "  if (first.metaCampaignId) {",
+                  "    pm.collectionVariables.set('metaCampaignId', first.metaCampaignId);",
+                  "    console.log('✅ campaignId:', first.id);",
+                  "    console.log('✅ metaCampaignId:', first.metaCampaignId);",
+                  "  }",
+                  "}"
+                ]}
+              }]
             },
             {
               "name": "List Campaigns (ek act_xxx ke)",
@@ -443,8 +460,10 @@
                 "script": { "exec": [
                   "const res = pm.response.json();",
                   "if (res.success && res.data && res.data.length > 0) {",
-                  "  pm.collectionVariables.set('adSetId', res.data[0].id);",
-                  "  console.log('adSetId set:', res.data[0].id);",
+                  "  const first = res.data[0];",
+                  "  pm.collectionVariables.set('adSetId', first.id);",
+                  "  if (first.metaAdSetId) pm.collectionVariables.set('metaAdSetId', first.metaAdSetId);",
+                  "  console.log('✅ adSetId:', first.id, '| metaAdSetId:', first.metaAdSetId);",
                   "}"
                 ]}
               }]

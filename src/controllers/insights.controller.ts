@@ -9,7 +9,8 @@ function requireUser(req: Request) {
 }
 
 function qs(req: Request, key: string): string | undefined {
-  return typeof req.query[key] === "string" ? (req.query[key] as string) : undefined;
+  const v = req.query[key];
+  return typeof v === "string" && v.trim() !== "" ? v.trim() : undefined;
 }
 
 export const insights = asyncHandler(async (req: Request, res: Response) => {
