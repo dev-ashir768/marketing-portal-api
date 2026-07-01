@@ -12,6 +12,7 @@ function qs(req: Request, key: string): string | undefined {
   return typeof req.query[key] === "string" ? (req.query[key] as string) : undefined;
 }
 
+
 export const sync = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
   const result = await syncAds(user.id, req.params.adSetId, qs(req, "externalCustomerId"));
