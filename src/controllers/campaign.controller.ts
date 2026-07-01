@@ -15,6 +15,10 @@ function requireUser(req: Request) {
   return req.user;
 }
 
+function qs(req: Request, key: string): string | undefined {
+  return typeof req.query[key] === "string" ? (req.query[key] as string) : undefined;
+}
+
 export const create = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
   const campaign = await createCampaign(user.id, req.body);
@@ -23,37 +27,46 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 
 export const list = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
-  const metaAccountId = typeof req.query.metaAccountId === "string" ? req.query.metaAccountId : undefined;
-  const campaigns = await listCampaigns(user.id, metaAccountId);
+  const campaigns = await listCampaigns(user.id, {
+    metaAccountId: qs(req, "metaAccountId"),
+    metaAdAccountId: qs(req, "metaAdAccountId"),
+    externalCustomerId: qs(req, "externalCustomerId"),
+  });
   res.status(200).json({ success: true, data: campaigns });
 });
 
 export const getOne = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
-  const campaign = await getCampaign(user.id, req.params.id);
+  const campaign = await getCampaign(user.id, req.params.id, qs(req, "externalCustomerId"));
   res.status(200).json({ success: true, data: campaign });
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
-  const campaign = await updateCampaign(user.id, req.params.id, req.body);
+  const campaign = await updateCampaign(user.id, req.params.id, req.body, qs(req, "externalCustomerId"));
   res.status(200).json({ success: true, data: campaign });
 });
 
 export const remove = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
-  await deleteCampaign(user.id, req.params.id);
+  await deleteCampaign(user.id, req.params.id, qs(req, "externalCustomerId"));
   res.status(204).send();
 });
 
 export const sync = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
-  // Accept either internal UUID (metaAccountId) or Meta's act_xxx (metaAdAccountId)
-  const metaAccountId = typeof req.query.metaAccountId === "string" ? req.query.metaAccountId : undefined;
-  const metaAdAccountId = typeof req.query.metaAdAccountId === "string" ? req.query.metaAdAccountId : undefined;
+  const metaAccountId = qs(req, "metaAccountId");
+  const metaAdAccountId = qs(req, "metaAdAccountId");
+  const externalCustomerId = qs(req, "externalCustomerId");
+
   if (!metaAccountId && !metaAdAccountId) {
     throw new AppError("Pass either metaAccountId (internal UUID) or metaAdAccountId (act_xxx)", 400);
   }
-  const result = await syncCampaignsFromMeta(user.id, { metaAccountId, metaAdAccountId });
+
+  const result = await syncCampaignsFromMeta(
+    user.id,
+    { metaAccountId, metaAdAccountId },
+    externalCustomerId
+  );
   res.status(200).json({ success: true, data: result });
 });

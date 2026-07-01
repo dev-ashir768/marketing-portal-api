@@ -5,8 +5,30 @@ import { getOwnedMetaAccount, getOwnedMetaAccountByAdAccountId } from "./metaAcc
 import { MetaAccountClient } from "./meta.service";
 import { CreateCampaignInput, UpdateCampaignInput } from "../utils/schemas/campaign.schema";
 
+// Resolves a MetaAccount and enforces ownership by both userId AND externalCustomerId.
+// If externalCustomerId is provided, the account must belong to that customer.
+async function resolveMetaAccount(
+  userId: string,
+  lookup: { metaAccountId?: string; metaAdAccountId?: string },
+  externalCustomerId?: string
+) {
+  const account = lookup.metaAccountId
+    ? await getOwnedMetaAccount(userId, lookup.metaAccountId)
+    : await getOwnedMetaAccountByAdAccountId(userId, lookup.metaAdAccountId!);
+
+  if (externalCustomerId && account.externalCustomerId !== externalCustomerId) {
+    throw new AppError("This Meta account does not belong to the specified customer", 403);
+  }
+
+  return account;
+}
+
 export async function createCampaign(userId: string, input: CreateCampaignInput) {
-  const metaAccount = await getOwnedMetaAccount(userId, input.metaAccountId);
+  const metaAccount = await resolveMetaAccount(
+    userId,
+    { metaAccountId: input.metaAccountId },
+    input.externalCustomerId
+  );
 
   const campaign = await prisma.adCampaign.create({
     data: {
@@ -40,19 +62,50 @@ export async function createCampaign(userId: string, input: CreateCampaignInput)
   return campaign;
 }
 
-export async function listCampaigns(userId: string, metaAccountId?: string) {
+export async function listCampaigns(
+  userId: string,
+  filters: { metaAccountId?: string; metaAdAccountId?: string; externalCustomerId?: string }
+) {
   return prisma.adCampaign.findMany({
     where: {
-      metaAccount: { userId },
-      ...(metaAccountId ? { metaAccountId } : {}),
+      metaAccount: {
+        userId,
+        ...(filters.externalCustomerId ? { externalCustomerId: filters.externalCustomerId } : {}),
+        ...(filters.metaAdAccountId ? { metaAdAccountId: filters.metaAdAccountId } : {}),
+      },
+      ...(filters.metaAccountId ? { metaAccountId: filters.metaAccountId } : {}),
+    },
+    include: {
+      metaAccount: {
+        select: {
+          metaAdAccountId: true,
+          businessName: true,
+          externalCustomerId: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 }
 
-export async function getCampaign(userId: string, campaignId: string) {
+export async function getCampaign(userId: string, campaignId: string, externalCustomerId?: string) {
   const campaign = await prisma.adCampaign.findFirst({
-    where: { id: campaignId, metaAccount: { userId } },
+    where: {
+      id: campaignId,
+      metaAccount: {
+        userId,
+        ...(externalCustomerId ? { externalCustomerId } : {}),
+      },
+    },
+    include: {
+      metaAccount: {
+        select: {
+          metaAdAccountId: true,
+          businessName: true,
+          externalCustomerId: true,
+        },
+      },
+    },
   });
   if (!campaign) {
     throw new AppError("Campaign not found", 404);
@@ -60,26 +113,31 @@ export async function getCampaign(userId: string, campaignId: string) {
   return campaign;
 }
 
-export async function updateCampaign(userId: string, campaignId: string, input: UpdateCampaignInput) {
-  await getCampaign(userId, campaignId);
+export async function updateCampaign(
+  userId: string,
+  campaignId: string,
+  input: UpdateCampaignInput,
+  externalCustomerId?: string
+) {
+  await getCampaign(userId, campaignId, externalCustomerId);
   return prisma.adCampaign.update({ where: { id: campaignId }, data: input });
 }
 
-export async function deleteCampaign(userId: string, campaignId: string) {
-  await getCampaign(userId, campaignId);
+export async function deleteCampaign(
+  userId: string,
+  campaignId: string,
+  externalCustomerId?: string
+) {
+  await getCampaign(userId, campaignId, externalCustomerId);
   await prisma.adCampaign.delete({ where: { id: campaignId } });
 }
 
-// Pulls all campaigns from Meta for a given ad account and upserts them
-// into the DB — so existing Meta Ads Manager campaigns appear here too,
-// and any new ones published on Meta side are picked up on the next sync.
 export async function syncCampaignsFromMeta(
   userId: string,
-  lookup: { metaAccountId?: string; metaAdAccountId?: string }
+  lookup: { metaAccountId?: string; metaAdAccountId?: string },
+  externalCustomerId?: string
 ) {
-  const metaAccount = lookup.metaAccountId
-    ? await getOwnedMetaAccount(userId, lookup.metaAccountId)
-    : await getOwnedMetaAccountByAdAccountId(userId, lookup.metaAdAccountId!);
+  const metaAccount = await resolveMetaAccount(userId, lookup, externalCustomerId);
   const client = new MetaAccountClient(metaAccount);
   const metaCampaigns = await client.syncCampaigns();
 
@@ -114,5 +172,9 @@ export async function syncCampaignsFromMeta(
   });
 
   await Promise.all(upserts);
-  return { synced: metaCampaigns.length };
+  return {
+    synced: metaCampaigns.length,
+    metaAdAccountId: metaAccount.metaAdAccountId,
+    externalCustomerId: metaAccount.externalCustomerId,
+  };
 }

@@ -12,6 +12,7 @@ const statusEnum = z.enum(["ACTIVE", "PAUSED", "DELETED", "ARCHIVED", "DRAFT"]);
 
 export const createCampaignSchema = z.object({
   metaAccountId: z.string().uuid(),
+  externalCustomerId: z.string().min(1).max(255).optional(),
   name: z.string().min(1).max(255),
   objective: objectiveEnum,
   status: statusEnum.default("DRAFT"),

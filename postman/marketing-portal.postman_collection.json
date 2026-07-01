@@ -280,31 +280,20 @@
           "name": "Campaigns",
           "item": [
             {
-              "name": "Sync Campaigns from Meta (act_xxx se)",
+              "name": "Sync Campaigns from Meta",
               "request": {
                 "method": "POST",
                 "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
                 "url": {
-                  "raw": "{{baseUrl}}/campaigns/sync?metaAdAccountId={{metaAdAccountId}}",
+                  "raw": "{{baseUrl}}/campaigns/sync?externalCustomerId={{externalCustomerId}}&metaAdAccountId={{metaAdAccountId}}",
                   "host": ["{{baseUrl}}"],
                   "path": ["campaigns", "sync"],
-                  "query": [{ "key": "metaAdAccountId", "value": "{{metaAdAccountId}}", "description": "Meta ka act_xxx ID (e.g. act_221314300585657)" }]
+                  "query": [
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}", "description": "Customer ka ID (e.g. OR-1001) — sirf isi customer ka account sync hoga" },
+                    { "key": "metaAdAccountId", "value": "{{metaAdAccountId}}", "description": "Meta ka act_xxx ID (e.g. act_221314300585657)" }
+                  ]
                 },
-                "description": "✅ RECOMMENDED: Meta ka act_xxx ID directly use karo.\n\nMeta Ads Manager ki existing + nai campaigns DB mein sync karta hai.\nServer start pe aur phir har 30 min automatic bhi hota hai."
-              }
-            },
-            {
-              "name": "Sync Campaigns from Meta (internal UUID se)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
-                "url": {
-                  "raw": "{{baseUrl}}/campaigns/sync?metaAccountId={{metaAccountId}}",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["campaigns", "sync"],
-                  "query": [{ "key": "metaAccountId", "value": "{{metaAccountId}}", "description": "Internal DB UUID (List Meta Accounts se milta hai)" }]
-                },
-                "description": "Internal UUID se sync. List Meta Accounts chalao pehle — auto-set ho jata hai."
+                "description": "Customer ki Meta campaigns DB mein sync karta hai.\n- externalCustomerId: OMS customer ID (OR-1001)\n- metaAdAccountId: Meta act_xxx\nServer har 30 min automatic bhi karta hai."
               }
             },
             {
@@ -317,9 +306,10 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"metaAccountId\": \"{{metaAccountId}}\",\n  \"name\": \"Summer Sale Campaign\",\n  \"objective\": \"SALES\",\n  \"status\": \"DRAFT\",\n  \"dailyBudgetCents\": 5000\n}"
+                  "raw": "{\n  \"metaAccountId\": \"{{metaAccountId}}\",\n  \"externalCustomerId\": \"{{externalCustomerId}}\",\n  \"name\": \"Summer Sale Campaign\",\n  \"objective\": \"OUTCOME_SALES\",\n  \"status\": \"DRAFT\",\n  \"dailyBudgetCents\": 5000\n}"
                 },
-                "url": { "raw": "{{baseUrl}}/campaigns", "host": ["{{baseUrl}}"], "path": ["campaigns"] }
+                "url": { "raw": "{{baseUrl}}/campaigns", "host": ["{{baseUrl}}"], "path": ["campaigns"] },
+                "description": "externalCustomerId pass karo — verify hoga ke metaAccountId usi customer ka hai."
               },
               "event": [
                 {
@@ -335,15 +325,34 @@
               ]
             },
             {
-              "name": "List Campaigns",
+              "name": "List Campaigns (customer ke saare)",
               "request": {
                 "method": "GET",
                 "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
                 "url": {
-                  "raw": "{{baseUrl}}/campaigns?metaAccountId={{metaAccountId}}",
+                  "raw": "{{baseUrl}}/campaigns?externalCustomerId={{externalCustomerId}}",
                   "host": ["{{baseUrl}}"],
                   "path": ["campaigns"],
-                  "query": [{ "key": "metaAccountId", "value": "{{metaAccountId}}" }]
+                  "query": [
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}", "description": "Sirf isi customer ke campaigns" }
+                  ]
+                },
+                "description": "Customer ke saare campaigns (saare Meta accounts across). externalCustomerId required."
+              }
+            },
+            {
+              "name": "List Campaigns (ek act_xxx ke)",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns?externalCustomerId={{externalCustomerId}}&metaAdAccountId={{metaAdAccountId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns"],
+                  "query": [
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}" },
+                    { "key": "metaAdAccountId", "value": "{{metaAdAccountId}}", "description": "Specific act_xxx filter" }
+                  ]
                 }
               }
             },
