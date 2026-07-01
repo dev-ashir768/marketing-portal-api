@@ -16,6 +16,7 @@ async function syncAccount(metaAccount: {
   accessTokenAuthTag: string;
 }) {
   try {
+    
     const client = new MetaAccountClient(metaAccount as never);
     const metaCampaigns = await client.syncCampaigns();
 
