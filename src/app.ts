@@ -1,6 +1,7 @@
-import express, { Application } from "express";
+import express, { Application, Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import routes from "./routes";
+import webhookRoutes from "./routes/webhook.routes";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 import { corsMiddleware } from "./config/cors";
 import { globalRateLimiter, authRateLimiter } from "./middlewares/rateLimit.middleware";
@@ -13,6 +14,22 @@ export function createApp(): Application {
   app.set("trust proxy", 1);
   app.use(helmet());
   app.use(corsMiddleware);
+
+  // Capture raw body for webhook signature verification (must come before express.json)
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    if (req.path.startsWith("/webhooks/")) {
+      let data = Buffer.alloc(0);
+      req.on("data", (chunk: Buffer) => { data = Buffer.concat([data, chunk]); });
+      req.on("end", () => {
+        (req as any).rawBody = data;
+        try { (req as any).body = JSON.parse(data.toString()); } catch { /* ignore */ }
+        next();
+      });
+    } else {
+      next();
+    }
+  });
+
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(httpLogger);
@@ -36,6 +53,9 @@ export function createApp(): Application {
       },
     });
   });
+
+  // Webhooks — no auth, Meta calls these directly
+  app.use("/webhooks", webhookRoutes);
 
   app.use("/api/v1/auth/login", authRateLimiter);
   app.use("/api/v1/auth/register", authRateLimiter);
