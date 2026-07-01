@@ -261,6 +261,20 @@
           "name": "Campaigns",
           "item": [
             {
+              "name": "Sync Campaigns from Meta (existing + new)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/campaigns/sync?metaAccountId={{metaAccountId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["campaigns", "sync"],
+                  "query": [{ "key": "metaAccountId", "value": "{{metaAccountId}}" }]
+                },
+                "description": "Meta Ads Manager ki existing + nai campaigns DB mein sync karta hai. Server start pe aur phir har 30 min automatic hota hai."
+              }
+            },
+            {
               "name": "Create Campaign",
               "request": {
                 "method": "POST",

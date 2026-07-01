@@ -87,4 +87,16 @@ export class MetaAccountClient {
       return this.handleMetaError(err, "Failed to fetch campaigns from Meta");
     }
   }
+
+  async syncCampaigns(): Promise<Array<{ id: string; name: string; status: string; objective: string; daily_budget?: string; lifetime_budget?: string; start_time?: string; stop_time?: string }>> {
+    try {
+      const campaigns = await this.adAccount.getCampaigns([
+        "id", "name", "status", "objective",
+        "daily_budget", "lifetime_budget", "start_time", "stop_time",
+      ]);
+      return campaigns as unknown as Array<{ id: string; name: string; status: string; objective: string; daily_budget?: string; lifetime_budget?: string; start_time?: string; stop_time?: string }>;
+    } catch (err) {
+      return this.handleMetaError(err, "Failed to sync campaigns from Meta");
+    }
+  }
 }

@@ -7,6 +7,7 @@ import {
   getCampaign,
   updateCampaign,
   deleteCampaign,
+  syncCampaignsFromMeta,
 } from "../services/campaign.service";
 
 function requireUser(req: Request) {
@@ -43,4 +44,12 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
   const user = requireUser(req);
   await deleteCampaign(user.id, req.params.id);
   res.status(204).send();
+});
+
+export const sync = asyncHandler(async (req: Request, res: Response) => {
+  const user = requireUser(req);
+  const metaAccountId = typeof req.query.metaAccountId === "string" ? req.query.metaAccountId : undefined;
+  if (!metaAccountId) throw new AppError("metaAccountId query param is required", 400);
+  const result = await syncCampaignsFromMeta(user.id, metaAccountId);
+  res.status(200).json({ success: true, data: result });
 });

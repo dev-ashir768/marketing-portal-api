@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { create, list, getOne, update, remove } from "../controllers/campaign.controller";
+import { create, list, getOne, update, remove, sync } from "../controllers/campaign.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import {
@@ -11,6 +11,7 @@ import {
 const router = Router();
 
 router.use(authMiddleware);
+router.post("/sync", sync);
 router.post("/", validate({ body: createCampaignSchema }), create);
 router.get("/", list);
 router.get("/:id", validate({ params: campaignIdParamSchema }), getOne);
