@@ -49,6 +49,21 @@ enum CreativeMediaType {
   VIDEO
 }
 
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  SYNC
+}
+
+enum AuditResource {
+  CAMPAIGN
+  AD_SET
+  AD
+  CREATIVE
+  META_ACCOUNT
+}
+
 model User {
   id           String  @id @default(uuid())
   email        String  @unique
@@ -64,6 +79,7 @@ model User {
 
   metaAccounts MetaAccount[]
   metaApps     MetaApp[]
+  auditLogs    AuditLog[]
 
   @@map("users")
 }
@@ -215,4 +231,23 @@ model AdCreative {
 
   @@index([metaAccountId])
   @@map("ad_creatives")
+}
+
+model AuditLog {
+  id                 String        @id @default(uuid())
+  userId             String
+  externalCustomerId String?
+  action             AuditAction
+  resource           AuditResource
+  resourceId         String?
+  metadata           Json?
+  createdAt          DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([externalCustomerId])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

@@ -861,6 +861,31 @@
               }
             }
           ]
+        },
+        {
+          "name": "Audit Logs",
+          "item": [
+            {
+              "name": "List Audit Logs",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/audit-logs?externalCustomerId={{externalCustomerId}}&page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["audit-logs"],
+                  "query": [
+                    { "key": "externalCustomerId", "value": "{{externalCustomerId}}", "description": "Customer ke logs filter karo" },
+                    { "key": "resource", "value": "", "description": "CAMPAIGN | AD_SET | AD | CREATIVE | META_ACCOUNT" },
+                    { "key": "action", "value": "", "description": "CREATE | UPDATE | DELETE | SYNC" },
+                    { "key": "page", "value": "1" },
+                    { "key": "limit", "value": "20" }
+                  ]
+                },
+                "description": "Audit trail — kaun ne kya kiya, kab kiya. Customer wise filter karo resource aur action se."
+              }
+            }
+          ]
         }
       ]
     }

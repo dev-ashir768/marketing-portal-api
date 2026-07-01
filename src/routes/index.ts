@@ -7,6 +7,7 @@ import adSetRoutes from "./adSet.routes";
 import adRoutes from "./ad.routes";
 import insightsRoutes from "./insights.routes";
 import creativeRoutes from "./creative.routes";
+import auditLogRoutes from "./auditLog.routes";
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use("/campaigns/:campaignId/ad-sets/:adSetId/ads", adRoutes);
 // Insights — account, campaign, adset, or ad level
 router.use("/insights", insightsRoutes);
 router.use("/creatives", creativeRoutes);
+router.use("/audit-logs", auditLogRoutes);
 
 export default router;

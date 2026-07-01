@@ -4,6 +4,7 @@ import { AppError } from "../utils/AppError";
 import { getOwnedMetaAccount, getOwnedMetaAccountByAdAccountId } from "./metaAccount.service";
 import { MetaAccountClient } from "./meta.service";
 import { CreateCampaignInput, UpdateCampaignInput } from "../utils/schemas/campaign.schema";
+import { createAuditLog } from "./audit.service";
 
 // Resolves a MetaAccount and enforces ownership by both userId AND externalCustomerId.
 // If externalCustomerId is provided, the account must belong to that customer.
@@ -53,12 +54,15 @@ export async function createCampaign(userId: string, input: CreateCampaignInput)
       dailyBudgetCents: campaign.dailyBudgetCents ?? undefined,
     });
 
-    return prisma.adCampaign.update({
+    const updated = await prisma.adCampaign.update({
       where: { id: campaign.id },
       data: { metaCampaignId: metaCampaign.id },
     });
+    await createAuditLog({ userId: metaAccount.userId, externalCustomerId: metaAccount.externalCustomerId, action: "CREATE", resource: "CAMPAIGN", resourceId: campaign.id, metadata: { name: campaign.name, objective: campaign.objective, status: campaign.status } });
+    return updated;
   }
 
+  await createAuditLog({ userId: metaAccount.userId, externalCustomerId: metaAccount.externalCustomerId, action: "CREATE", resource: "CAMPAIGN", resourceId: campaign.id, metadata: { name: campaign.name, status: campaign.status } });
   return campaign;
 }
 
@@ -151,7 +155,9 @@ export async function updateCampaign(
     });
   }
 
-  return prisma.adCampaign.update({ where: { id: campaignId }, data: input });
+  const updated = await prisma.adCampaign.update({ where: { id: campaignId }, data: input });
+  await createAuditLog({ userId, externalCustomerId: campaign.metaAccount.externalCustomerId, action: "UPDATE", resource: "CAMPAIGN", resourceId: campaignId, metadata: input as Record<string, unknown> });
+  return updated;
 }
 
 export async function deleteCampaign(
@@ -159,8 +165,9 @@ export async function deleteCampaign(
   campaignId: string,
   externalCustomerId?: string
 ) {
-  await getCampaign(userId, campaignId, externalCustomerId);
+  const campaign = await getCampaign(userId, campaignId, externalCustomerId);
   await prisma.adCampaign.delete({ where: { id: campaignId } });
+  await createAuditLog({ userId, externalCustomerId: campaign.metaAccount.externalCustomerId, action: "DELETE", resource: "CAMPAIGN", resourceId: campaignId, metadata: { name: campaign.name } });
 }
 
 export async function syncCampaignsFromMeta(

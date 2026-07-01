@@ -2,6 +2,7 @@ import { prisma } from "../config/prisma";
 import { AdStatus } from "@prisma/client";
 import { AppError } from "../utils/AppError";
 import { MetaAccountClient } from "./meta.service";
+import { createAuditLog } from "./audit.service";
 
 const validStatuses = Object.values(AdStatus);
 
@@ -55,7 +56,7 @@ export async function createAd(
     metaCreativeId: creative.metaCreativeId,
   });
 
-  return prisma.ad.create({
+  const ad = await prisma.ad.create({
     data: {
       metaAccountId: adSet.metaAccountId,
       adSetId: adSet.id,
@@ -65,6 +66,8 @@ export async function createAd(
       creativeId: creative.id,
     },
   });
+  await createAuditLog({ userId, externalCustomerId: input.externalCustomerId, action: "CREATE", resource: "AD", resourceId: ad.id, metadata: { name: input.name, adSetId, creativeId: input.creativeId } });
+  return ad;
 }
 
 export async function syncAds(
@@ -138,10 +141,13 @@ export async function updateAd(
   externalCustomerId?: string
 ) {
   await getAd(userId, adId, externalCustomerId);
-  return prisma.ad.update({ where: { id: adId }, data: input });
+  const updated = await prisma.ad.update({ where: { id: adId }, data: input });
+  await createAuditLog({ userId, action: "UPDATE", resource: "AD", resourceId: adId, metadata: input as Record<string, unknown> });
+  return updated;
 }
 
 export async function deleteAd(userId: string, adId: string, externalCustomerId?: string) {
-  await getAd(userId, adId, externalCustomerId);
+  const ad = await getAd(userId, adId, externalCustomerId);
   await prisma.ad.delete({ where: { id: adId } });
+  await createAuditLog({ userId, action: "DELETE", resource: "AD", resourceId: adId, metadata: { name: ad.name } });
 }

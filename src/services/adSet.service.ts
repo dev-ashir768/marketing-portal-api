@@ -2,6 +2,7 @@ import { prisma } from "../config/prisma";
 import { AdSetStatus } from "@prisma/client";
 import { AppError } from "../utils/AppError";
 import { MetaAccountClient } from "./meta.service";
+import { createAuditLog } from "./audit.service";
 
 const validStatuses = Object.values(AdSetStatus);
 
@@ -57,7 +58,7 @@ export async function createAdSet(
     endTime: input.endTime,
   });
 
-  return prisma.adSet.create({
+  const adSet = await prisma.adSet.create({
     data: {
       metaAccountId: campaign.metaAccountId,
       campaignId: campaign.id,
@@ -70,6 +71,8 @@ export async function createAdSet(
       endTime: input.endTime ? new Date(input.endTime) : null,
     },
   });
+  await createAuditLog({ userId, externalCustomerId: input.externalCustomerId, action: "CREATE", resource: "AD_SET", resourceId: adSet.id, metadata: { name: input.name, campaignId } });
+  return adSet;
 }
 
 export async function syncAdSets(
@@ -172,12 +175,15 @@ export async function updateAdSet(
     });
   }
 
-  return prisma.adSet.update({ where: { id: adSetId }, data: input });
+  const updated = await prisma.adSet.update({ where: { id: adSetId }, data: input });
+  await createAuditLog({ userId, action: "UPDATE", resource: "AD_SET", resourceId: adSetId, metadata: input as Record<string, unknown> });
+  return updated;
 }
 
 export async function deleteAdSet(userId: string, adSetId: string, externalCustomerId?: string) {
-  await getAdSet(userId, adSetId, externalCustomerId);
+  const adSet = await getAdSet(userId, adSetId, externalCustomerId);
   await prisma.adSet.delete({ where: { id: adSetId } });
+  await createAuditLog({ userId, action: "DELETE", resource: "AD_SET", resourceId: adSetId, metadata: { name: adSet.name } });
 }
 
 // Verify campaign ownership for use by ad service
