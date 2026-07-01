@@ -12,7 +12,6 @@ async function getAllowedPortalOrigins(): Promise<Set<string>> {
   if (Date.now() < cacheExpiresAt) {
     return cachedPortalOrigins;
   }
-
   
   const users = await prisma.user.findMany({
     where: { portalUrl: { not: null } },
